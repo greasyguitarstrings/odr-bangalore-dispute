@@ -36,6 +36,7 @@ import {
   Loader2,
   Download,
   Lock,
+  Unlock,
   FileImage,
   Award,
   Info,
@@ -46,8 +47,77 @@ import {
   PlusCircle,
 } from "lucide-react";
 
-/* ─── ACTIVE VIEW TYPE ─── */
-export type ActiveView = "dashboard" | "rules" | "negotiation" | "settlement" | "intake";
+/* ─── ACTIVE VIEW & WORKFLOW STEP TYPES ─── */
+export type ActiveView = "dashboard" | "intake" | "rules" | "negotiation" | "settlement";
+
+export interface WorkflowStep {
+  step: number;
+  id: ActiveView;
+  label: string;
+  shortLabel: string;
+  stageBadge: string;
+  description: string;
+}
+
+export const WORKFLOW_STEPS: WorkflowStep[] = [
+  {
+    step: 1,
+    id: "dashboard",
+    label: "Step 1: Case Overview",
+    shortLabel: "Case Overview",
+    stageBadge: "Stage 1",
+    description: "Review dispute particulars & itemized deductions",
+  },
+  {
+    step: 2,
+    id: "intake",
+    label: "Step 2: Form 1-A Notice",
+    shortLabel: "Form 1-A Notice",
+    stageBadge: "Stage 2",
+    description: "Prescribed filing under Karnataka Rent Control",
+  },
+  {
+    step: 3,
+    id: "rules",
+    label: "Step 3: Karnataka Sec 12 Audit",
+    shortLabel: "Sec 12 Audit",
+    stageBadge: "Stage 3",
+    description: "Statutory wear-and-tear & cleaning ceiling audit",
+  },
+  {
+    step: 4,
+    id: "negotiation",
+    label: "Step 4: 3-Round Convergence",
+    shortLabel: "Negotiation",
+    stageBadge: "Stage 4",
+    description: "Algorithmic deposit gap convergence engine",
+  },
+  {
+    step: 5,
+    id: "settlement",
+    label: "Step 5: Settlement Deed",
+    shortLabel: "Settlement Deed",
+    stageBadge: "Stage 5",
+    description: "Binding e-Stamp deed under Sec 89 CPC",
+  },
+];
+
+export function getStepNumber(view: ActiveView): number {
+  switch (view) {
+    case "dashboard":
+      return 1;
+    case "intake":
+      return 2;
+    case "rules":
+      return 3;
+    case "negotiation":
+      return 4;
+    case "settlement":
+      return 5;
+    default:
+      return 1;
+  }
+}
 
 /* ─── SCROLL ANIMATION CONFIGURATION ─── */
 const scrollFadeVariant = {
@@ -116,6 +186,7 @@ export interface DisputeCase {
   landlordSigned: boolean;
   tenantSignTime: string;
   landlordSignTime: string;
+  maxUnlockedStep?: number;
 }
 
 export const BANGALORE_ADDRESS_PRESETS = [
@@ -389,6 +460,7 @@ const DEFAULT_CASE: DisputeCase = {
   landlordSigned: false,
   tenantSignTime: "",
   landlordSignTime: "",
+  maxUnlockedStep: 1,
 };
 
 const INITIAL_CLAIMS: ClaimItem[] = DEFAULT_CASE.claims;
@@ -484,6 +556,37 @@ export default function SettlrODRPage() {
     );
   };
 
+  /* ─── PROGRESSIVE STEP-GATING STATE ─── */
+  const [maxUnlockedStep, setMaxUnlockedStep] = useState<number>(DEFAULT_CASE.maxUnlockedStep || 1);
+  const [isDemoUnlocked, setIsDemoUnlocked] = useState<boolean>(false);
+
+  const effectiveMaxStep = isDemoUnlocked ? 5 : maxUnlockedStep;
+  const currentStepNumber = getStepNumber(activeView);
+
+  const updateMaxUnlockedStep = (newStep: number) => {
+    setMaxUnlockedStep((prev) => {
+      const updated = Math.max(prev, newStep);
+      syncActiveCaseToCases({ maxUnlockedStep: updated });
+      return updated;
+    });
+  };
+
+  const navigateToView = (targetView: ActiveView) => {
+    const targetStepNum = getStepNumber(targetView);
+    if (targetStepNum > effectiveMaxStep) {
+      const targetMeta = WORKFLOW_STEPS.find((s) => s.step === targetStepNum);
+      setToastMessage(
+        `🔒 Step ${targetStepNum} (${targetMeta?.shortLabel || targetView}) is locked! Complete Step ${effectiveMaxStep} first, or use Demo Unlock.`
+      );
+      setTimeout(() => setToastMessage(null), 3500);
+      return false;
+    }
+    setActiveView(targetView);
+    setIsSidebarOpen(false);
+    document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
+    return true;
+  };
+
   /* ─── SWITCH ACTIVE CASE ─── */
   const switchCase = (id: string) => {
     const target = cases.find((c) => c.id === id);
@@ -501,6 +604,7 @@ export default function SettlrODRPage() {
     setLandlordSigned(target.landlordSigned);
     setTenantSignTime(target.tenantSignTime);
     setLandlordSignTime(target.landlordSignTime);
+    setMaxUnlockedStep(target.maxUnlockedStep || 1);
     setExpandedClaims({});
     setToastMessage(`Switched to Case #${target.id} (${target.address.split(",")[0]})`);
     setTimeout(() => setToastMessage(null), 3500);
@@ -528,8 +632,12 @@ export default function SettlrODRPage() {
 
   /* ─── QUICK TRIGGER 1: RUN STATUTORY AUDIT ─── */
   const handleTriggerAudit = () => {
+    updateMaxUnlockedStep(3);
     setActiveView("rules");
-    if (auditState === "completed") return;
+    if (auditState === "completed") {
+      updateMaxUnlockedStep(4);
+      return;
+    }
 
     setAuditState("running");
     setAuditProgress(0);
@@ -549,6 +657,7 @@ export default function SettlrODRPage() {
         setClaims(updatedClaims);
         setLandlordOffer(statutoryCap);
         setCounterSlider(statutoryCap);
+        updateMaxUnlockedStep(4);
         syncActiveCaseToCases({
           auditState: "completed",
           auditProgress: 100,
@@ -569,6 +678,7 @@ export default function SettlrODRPage() {
 
   /* ─── QUICK TRIGGER 2: FAST-FORWARD SETTLEMENT ─── */
   const handleFastForward = () => {
+    updateMaxUnlockedStep(5);
     setAuditState("completed");
     const updatedClaims = claims.map((c) => ({
       ...c,
@@ -601,6 +711,8 @@ export default function SettlrODRPage() {
 
   /* ─── QUICK TRIGGER 3: 1-CLICK PITCH DEMO ─── */
   const runPitchDemo = () => {
+    setIsDemoUnlocked(true);
+    updateMaxUnlockedStep(5);
     setIsPitching(true);
     setPerspective("tenant");
     setActiveView("dashboard");
@@ -645,6 +757,7 @@ export default function SettlrODRPage() {
     if (newGap <= 4100 || offerAmount === statutoryCap) {
       setIsSettled(true);
       setLandlordOffer(offerAmount);
+      updateMaxUnlockedStep(5);
       syncActiveCaseToCases({
         tenantOffer: offerAmount,
         landlordOffer: offerAmount,
@@ -677,6 +790,7 @@ export default function SettlrODRPage() {
         setLandlordOffer(compromise);
         setTenantOffer(compromise);
         setIsSettled(true);
+        updateMaxUnlockedStep(5);
         syncActiveCaseToCases({
           tenantOffer: compromise,
           landlordOffer: compromise,
@@ -696,11 +810,35 @@ export default function SettlrODRPage() {
     }
   };
 
-  /* ─── INTAKE VIEW NAVIGATION & DEMO SEEDING ─── */
-  const openIntakeView = () => {
+  /* ─── STEP PROGRESSION HANDLERS ─── */
+  const unlockAndNavigateToStep2 = () => {
+    updateMaxUnlockedStep(2);
     setActiveView("intake");
     setIsSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+    setToastMessage("🚀 Step 2 Unlocked: Form 1-A Notice & Deductions Filing");
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleAcceptAuditAndProceedToNegotiation = () => {
+    updateMaxUnlockedStep(4);
+    setActiveView("negotiation");
+    setToastMessage("✅ Statutory Audit Accepted! Unlocked Step 4: 3-Round Algorithmic Negotiation");
+    setTimeout(() => setToastMessage(null), 3500);
+    document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleProceedToSettlementDeed = () => {
+    updateMaxUnlockedStep(5);
+    setActiveView("settlement");
+    setToastMessage("📜 Step 5 Unlocked: Binding e-Stamp Settlement Deed");
+    setTimeout(() => setToastMessage(null), 3500);
+    document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  /* ─── INTAKE VIEW NAVIGATION & DEMO SEEDING ─── */
+  const openIntakeView = () => {
+    unlockAndNavigateToStep2();
   };
 
   const handleSeedDemoCase = () => {
@@ -805,6 +943,7 @@ export default function SettlrODRPage() {
       landlordSigned: false,
       tenantSignTime: "",
       landlordSignTime: "",
+      maxUnlockedStep: 3,
     };
 
     setCases((prev) => [newCase, ...prev]);
@@ -822,9 +961,10 @@ export default function SettlrODRPage() {
     setTenantSignTime("");
     setLandlordSignTime("");
     setIsNewCaseModalOpen(false);
+    updateMaxUnlockedStep(3);
 
-    setActiveView("dashboard");
-    setToastMessage(`Case ${newId} registered under Karnataka Rent Control Section 12`);
+    setActiveView("rules");
+    setToastMessage(`✅ Form 1-A Filed! Case #${newId} registered. Advanced to Step 3: Karnataka Sec 12 Audit.`);
     setTimeout(() => setToastMessage(null), 5000);
 
     confetti({
@@ -862,6 +1002,7 @@ export default function SettlrODRPage() {
     setLandlordSigned(false);
     setTenantSignTime("");
     setLandlordSignTime("");
+    updateMaxUnlockedStep(1);
     setActiveView("dashboard");
     setIsSidebarOpen(false);
 
@@ -878,6 +1019,7 @@ export default function SettlrODRPage() {
       tenantSignTime: "",
       landlordSignTime: "",
       claims: initialClaims,
+      maxUnlockedStep: 1,
     });
   };
 
@@ -1173,6 +1315,37 @@ export default function SettlrODRPage() {
 
           {/* Quick Triggers, New Dispute & Theme Switcher */}
           <div className="flex items-center gap-2">
+            {/* Demo Mode Step Unlocker Toggle */}
+            <button
+              onClick={() => {
+                const nextVal = !isDemoUnlocked;
+                setIsDemoUnlocked(nextVal);
+                if (nextVal) {
+                  setToastMessage("⚡ Demo Mode: All 5 Workflow Steps Unlocked!");
+                } else {
+                  setToastMessage("🔒 Step-gated Progressive Workflow Restored");
+                }
+                setTimeout(() => setToastMessage(null), 3500);
+              }}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 border shadow-sm cursor-pointer ${
+                isDemoUnlocked
+                  ? "bg-amber-500/20 text-amber-300 border-amber-500/50 hover:bg-amber-500 hover:text-slate-950 shadow-amber-500/10"
+                  : isDark
+                  ? "bg-[#252222] border-[#3D3838] text-[#A8A3A3] hover:text-white"
+                  : "bg-white border-[#D6D1D1] text-[#5E5959] hover:text-black"
+              }`}
+              title="Toggle Demo Mode: Unlocks all 5 workflow steps for pitch presentation"
+            >
+              {isDemoUnlocked ? (
+                <Unlock className="w-3.5 h-3.5 text-amber-400" />
+              ) : (
+                <Lock className="w-3.5 h-3.5 text-neutral-400" />
+              )}
+              <span className="hidden sm:inline font-black">
+                {isDemoUnlocked ? "All Steps Unlocked" : "Unlock All (Demo)"}
+              </span>
+            </button>
+
             <button
               onClick={openIntakeView}
               className="px-2.5 py-1.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition flex items-center gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
@@ -1265,55 +1438,141 @@ export default function SettlrODRPage() {
           </div>
         </div>
 
-        {/* ─── PRIMARY VIEW SELECTOR BAR (SYNCED WITH HAMBURGER) ─── */}
+        {/* ─── 5-STEP PROGRESSIVE WORKFLOW STEPPER BAR ─── */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2">
           <div
-            className={`flex items-center gap-1.5 p-1 rounded-2xl border overflow-x-auto shadow-sm ${
+            className={`p-2 rounded-2xl border shadow-md transition-colors ${
               isDark ? "bg-[#181616] border-[#332F2F]" : "bg-white border-[#E0DDDD]"
             }`}
           >
-            {[
-              { id: "dashboard" as const, label: "Case Dashboard", icon: FileText, badge: `${claims.length} Heads` },
-              { id: "intake" as const, label: "Form 1-A (Intake)", icon: PlusCircle, badge: "New Notice" },
-              { id: "rules" as const, label: "Karnataka Rule 12 (Statutes)", icon: Scale, badge: "Sec 12" },
-              { id: "negotiation" as const, label: "3-Round Negotiation", icon: Handshake, badge: `Round ${negRound}` },
-              { id: "settlement" as const, label: "Settlement Deed", icon: Stamp, badge: isSettled ? "Executed" : "e-Stamp" },
-            ].map((tab) => {
-              const TabIcon = tab.icon;
-              const isActive = activeView === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveView(tab.id);
-                    document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className={`flex-1 min-w-[145px] py-1.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-between gap-2 cursor-pointer ${
-                    isActive
-                      ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
-                      : isDark
-                      ? "hover:bg-[#252222] text-[#A8A3A3] hover:text-white"
-                      : "hover:bg-[#F4F2F2] text-[#5E5959] hover:text-black"
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5 truncate">
-                    <TabIcon className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{tab.label}</span>
+            {/* Stepper Status Header */}
+            <div className="flex items-center justify-between px-2 py-1 mb-1.5 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                  Karnataka ODR Workflow
+                </span>
+                <span className="font-extrabold hidden md:inline text-xs">
+                  Stage {currentStepNumber} of 5: <span className="text-emerald-400">{WORKFLOW_STEPS.find(s => s.id === activeView)?.label}</span>
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {isDemoUnlocked && (
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                    <Unlock className="w-2.5 h-2.5" /> Demo Mode
                   </span>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
-                      isActive
-                        ? "bg-slate-950/20 text-slate-950"
+                )}
+                <span className={`text-[11px] font-bold ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
+                  {effectiveMaxStep}/5 Stages Unlocked
+                </span>
+              </div>
+            </div>
+
+            {/* 5 Step Blocks */}
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+              {WORKFLOW_STEPS.map((stepItem) => {
+                const isCurrent = activeView === stepItem.id;
+                const isCompleted = stepItem.step < currentStepNumber;
+                const isLocked = stepItem.step > effectiveMaxStep;
+
+                return (
+                  <button
+                    key={stepItem.id}
+                    onClick={() => navigateToView(stepItem.id)}
+                    className={`group relative p-2 sm:p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                      isCurrent
+                        ? "bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-400/40 cursor-default"
+                        : isLocked
+                        ? isDark
+                          ? "bg-[#141212]/70 border-[#2A2626] text-neutral-600 opacity-40 cursor-not-allowed"
+                          : "bg-neutral-100/70 border-neutral-200 text-neutral-400 opacity-40 cursor-not-allowed"
+                        : isCompleted
+                        ? isDark
+                          ? "bg-[#1F1C1C] border-emerald-500/30 hover:border-emerald-500/60 hover:bg-[#252222] text-[#E0DDDD] cursor-pointer"
+                          : "bg-emerald-50/40 border-emerald-300 hover:bg-emerald-50 text-[#1E1B1B] cursor-pointer"
                         : isDark
-                        ? "bg-[#252222] text-emerald-400"
-                        : "bg-[#EAE7E7] text-emerald-700"
+                        ? "bg-[#1E1B1B] border-[#363232] hover:border-neutral-500 hover:bg-[#252222] text-[#E0DDDD] cursor-pointer"
+                        : "bg-white border-[#E0DDDD] hover:border-neutral-400 hover:bg-neutral-50 text-[#1E1B1B] cursor-pointer"
                     }`}
+                    title={
+                      isLocked
+                        ? `Locked: Complete Step ${stepItem.step - 1} or activate Demo Mode`
+                        : `${stepItem.label} — ${stepItem.description}`
+                    }
                   >
-                    {tab.badge}
-                  </span>
-                </button>
-              );
-            })}
+                    {/* Top row: Step Indicator Badge & Status */}
+                    <div className="flex items-center justify-between gap-1 w-full mb-1">
+                      <span
+                        className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg flex items-center justify-center font-black text-[10px] sm:text-xs transition-colors shrink-0 ${
+                          isCurrent
+                            ? "bg-slate-950 text-emerald-400 shadow-sm"
+                            : isLocked
+                            ? "bg-neutral-800 text-neutral-500"
+                            : isCompleted
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                            : isDark
+                            ? "bg-[#2B2727] text-neutral-300 border border-[#3E3838]"
+                            : "bg-neutral-200 text-neutral-700"
+                        }`}
+                      >
+                        {isLocked ? (
+                          <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-neutral-500" />
+                        ) : isCompleted ? (
+                          <Check className="w-3 h-3 text-emerald-400 stroke-[3]" />
+                        ) : (
+                          stepItem.step
+                        )}
+                      </span>
+
+                      {/* Status pill */}
+                      <span
+                        className={`text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md uppercase shrink-0 hidden xs:inline-block ${
+                          isCurrent
+                            ? "bg-slate-950/20 text-slate-950"
+                            : isLocked
+                            ? "text-neutral-500"
+                            : isCompleted
+                            ? "text-emerald-400"
+                            : isDark
+                            ? "text-neutral-400"
+                            : "text-neutral-500"
+                        }`}
+                      >
+                        {isLocked ? "Locked" : isCompleted ? "✓ Done" : isCurrent ? "Active" : "Ready"}
+                      </span>
+                    </div>
+
+                    {/* Step Labels */}
+                    <div className="min-w-0">
+                      <div
+                        className={`font-black text-xs sm:text-sm truncate leading-tight ${
+                          isCurrent
+                            ? "text-slate-950"
+                            : isLocked
+                            ? "text-neutral-600"
+                            : isDark
+                            ? "text-white"
+                            : "text-[#1E1B1B]"
+                        }`}
+                      >
+                        {stepItem.shortLabel}
+                      </div>
+                      <div
+                        className={`text-[10px] truncate hidden md:block leading-snug mt-0.5 ${
+                          isCurrent
+                            ? "text-slate-950/80 font-medium"
+                            : isLocked
+                            ? "text-neutral-600"
+                            : "opacity-60"
+                        }`}
+                      >
+                        {stepItem.stageBadge}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </header>
@@ -1411,69 +1670,108 @@ export default function SettlrODRPage() {
                   </div>
                 )}
 
-                {/* DISTINCT HIGH-VALUE NAVIGATION VIEWS */}
+                {/* PROGRESSIVE WORKFLOW NAVIGATION VIEWS */}
                 <div className="space-y-1">
-                  <div className="text-[10px] font-bold uppercase tracking-wider opacity-60 flex items-center gap-1">
-                    <Layers className="w-3 h-3 text-emerald-400" />
-                    Select Active Portal View
+                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider opacity-70 mb-1">
+                    <span className="flex items-center gap-1">
+                      <Layers className="w-3 h-3 text-emerald-400" />
+                      5-Step Dispute Workflow
+                    </span>
+                    <span className="text-emerald-400 font-extrabold">{effectiveMaxStep}/5 Unlocked</span>
                   </div>
-                  {[
-                    {
-                      id: "dashboard" as const,
-                      label: "Case Dashboard",
-                      icon: FileText,
-                      desc: "Intake, dispute summary & deduction cards",
-                    },
-                    {
-                      id: "intake" as const,
-                      label: "Form 1-A (Dispute Intake)",
-                      icon: PlusCircle,
-                      desc: "Prescribed filing under Karnataka Rent Control",
-                    },
-                    {
-                      id: "rules" as const,
-                      label: "Karnataka Rule 12 (Statutes)",
-                      icon: Scale,
-                      desc: "0% wear-and-tear painting & 10% fixture depreciation",
-                    },
-                    {
-                      id: "negotiation" as const,
-                      label: "3-Round Negotiation",
-                      icon: Handshake,
-                      desc: "Interactive offer/counter-offer gap tracker",
-                    },
-                    {
-                      id: "settlement" as const,
-                      label: "Settlement Deed",
-                      icon: Stamp,
-                      desc: "Formal stamp-duty settlement agreement",
-                    },
-                  ].map((viewItem) => {
-                    const ViewIcon = viewItem.icon;
-                    const isActive = activeView === viewItem.id;
+
+                  {/* Drawer Demo Unlock Toggle */}
+                  <button
+                    onClick={() => {
+                      const nextVal = !isDemoUnlocked;
+                      setIsDemoUnlocked(nextVal);
+                      if (nextVal) {
+                        setToastMessage("⚡ Demo Mode: All 5 Steps Unlocked!");
+                      } else {
+                        setToastMessage("🔒 Progressive Gating Restored");
+                      }
+                      setTimeout(() => setToastMessage(null), 3000);
+                    }}
+                    className={`w-full text-left p-2 rounded-xl border text-xs font-bold transition flex items-center justify-between mb-2 cursor-pointer ${
+                      isDemoUnlocked
+                        ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                        : isDark
+                        ? "bg-[#222020] border-[#383333] text-neutral-300 hover:text-white"
+                        : "bg-[#F4F2F2] border-[#D6D1D1] text-neutral-700 hover:text-black"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {isDemoUnlocked ? <Unlock className="w-3.5 h-3.5 text-amber-400" /> : <Lock className="w-3.5 h-3.5 text-neutral-400" />}
+                      <span>{isDemoUnlocked ? "All Steps Unlocked (Demo)" : "⚡ Unlock All Steps (Demo)"}</span>
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded font-black bg-amber-500/20 text-amber-400">
+                      {isDemoUnlocked ? "Active" : "Pitch"}
+                    </span>
+                  </button>
+
+                  {WORKFLOW_STEPS.map((stepItem) => {
+                    const isLocked = stepItem.step > effectiveMaxStep;
+                    const isActive = activeView === stepItem.id;
+                    const isCompleted = stepItem.step < currentStepNumber;
+                    const StepIcon =
+                      stepItem.id === "dashboard"
+                        ? FileText
+                        : stepItem.id === "intake"
+                        ? PlusCircle
+                        : stepItem.id === "rules"
+                        ? Scale
+                        : stepItem.id === "negotiation"
+                        ? Handshake
+                        : Stamp;
+
                     return (
                       <button
-                        key={viewItem.id}
+                        key={stepItem.id}
                         onClick={() => {
-                          setActiveView(viewItem.id);
-                          setIsSidebarOpen(false);
-                          document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
+                          navigateToView(stepItem.id);
                         }}
                         className={`w-full text-left p-2.5 rounded-xl border text-xs font-semibold transition ${
-                          isActive
+                          isLocked
+                            ? "opacity-40 cursor-not-allowed bg-neutral-900/20 border-neutral-800 text-neutral-500"
+                            : isActive
                             ? isDark
                               ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-sm"
                               : "bg-emerald-50 text-emerald-800 border-emerald-300 shadow-sm"
                             : isDark
                             ? "hover:bg-[#252222] text-[#C8C4C4] border-transparent"
-                            : "hover:bg-[#EAE7E7] text-[#4F4B4B] border-transparent"
+                            : "hover:bg-[#EAE7E7] text-[#4F4B4B] border-transparent cursor-pointer"
                         }`}
                       >
-                        <div className="flex items-center gap-2 font-bold">
-                          <ViewIcon className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>{viewItem.label}</span>
+                        <div className="flex items-center justify-between font-bold">
+                          <div className="flex items-center gap-2">
+                            {isLocked ? (
+                              <Lock className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+                            ) : isCompleted ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            ) : (
+                              <StepIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            )}
+                            <span className="truncate">{stepItem.label}</span>
+                          </div>
+                          <span
+                            className={`text-[9px] px-1.5 py-0.5 rounded font-black shrink-0 ${
+                              isLocked
+                                ? "bg-neutral-800 text-neutral-400"
+                                : isActive
+                                ? "bg-emerald-500 text-slate-950"
+                                : isCompleted
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : isDark
+                                ? "bg-[#252222] text-neutral-400"
+                                : "bg-neutral-200 text-neutral-600"
+                            }`}
+                          >
+                            {isLocked ? "Locked" : isCompleted ? "✓ Done" : isActive ? "Active" : "Ready"}
+                          </span>
                         </div>
-                        <div className="text-[10px] opacity-60 pl-5.5 mt-0.5">{viewItem.desc}</div>
+                        <div className="text-[10px] opacity-60 pl-5.5 mt-0.5 truncate">
+                          {stepItem.description}
+                        </div>
                       </button>
                     );
                   })}
@@ -1937,6 +2235,34 @@ export default function SettlrODRPage() {
                     );
                   })}
                 </div>
+
+                {/* Step 1 Completion / Progression Action Banner */}
+                <div
+                  className={`mt-4 p-4 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md ${
+                    isDark ? "bg-[#1E1C1C] border-[#383333]" : "bg-emerald-50/50 border-emerald-200"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-base shrink-0 border border-emerald-500/30">
+                      1
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-emerald-400 uppercase tracking-wider">
+                        Step 1 Complete • Next Action
+                      </div>
+                      <div className="font-extrabold text-sm">
+                        Dispute dossier & claims reviewed. Ready to issue formal Form 1-A Notice.
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={unlockAndNavigateToStep2}
+                    className="w-full sm:w-auto px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/20 cursor-pointer shrink-0"
+                  >
+                    <span>Proceed to Step 2: Form 1-A Notice</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -2127,21 +2453,21 @@ export default function SettlrODRPage() {
                 {/* Next Step Button */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                   <button
-                    onClick={() => setActiveView("dashboard")}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
+                    onClick={() => navigateToView("intake")}
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                       isDark ? "border-[#3A3535] text-[#A8A3A3] hover:text-white" : "border-[#D6D1D1] text-[#5E5959] hover:text-black"
                     }`}
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>Back to Dashboard</span>
+                    <span>Back to Step 2: Form 1-A Notice</span>
                   </button>
 
                   <button
-                    onClick={() => setActiveView("negotiation")}
-                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 transition shadow-md"
+                    onClick={handleAcceptAuditAndProceedToNegotiation}
+                    className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-2 transition shadow-md shadow-emerald-500/20 cursor-pointer"
                   >
-                    <span>Proceed to 3-Round Negotiation</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Accept Statutory Audit & Proceed to Algorithmic Negotiation (Step 4)</span>
+                    <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
                   </button>
                 </div>
               </div>
@@ -2284,22 +2610,42 @@ export default function SettlrODRPage() {
                   </div>
                 </div>
 
-                {/* Convergence Alert */}
-                {isSettled && (
-                  <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 flex items-center justify-between gap-3">
+                {/* Convergence Alert & Step 5 Trigger */}
+                {(isSettled || negRound >= 3 || gapPercentage <= 5) ? (
+                  <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
                     <div className="flex items-center gap-2.5">
                       <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
                       <div className="text-xs">
-                        <strong className="text-emerald-400 text-sm block">Mutual Accord Reached at ₹{activeDeduction.toLocaleString("en-IN")}!</strong>
-                        Settlement Deed is ready for digital signature and execution.
+                        <strong className="text-emerald-400 text-sm block">
+                          {isSettled
+                            ? `Mutual Accord Reached at ₹${activeDeduction.toLocaleString("en-IN")}!`
+                            : `Consensus Threshold Met (${gapPercentage}% Gap • Round ${negRound})!`}
+                        </strong>
+                        Step 5 Unlocked: Statutory e-Stamp Settlement Deed under Section 89 CPC is ready for execution.
                       </div>
                     </div>
                     <button
-                      onClick={() => setActiveView("settlement")}
-                      className="px-3.5 py-1.5 bg-emerald-400 text-slate-950 font-black rounded-xl text-xs hover:bg-emerald-300 transition shrink-0"
+                      onClick={handleProceedToSettlementDeed}
+                      className="px-4 py-2.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black rounded-xl text-xs transition shrink-0 flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
                     >
-                      View Executed Deed ↓
+                      <span>Generate Final Deed (Step 5)</span>
+                      <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
                     </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between pt-2">
+                    <button
+                      onClick={() => navigateToView("rules")}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                        isDark ? "border-[#3A3535] text-[#A8A3A3] hover:text-white" : "border-[#D6D1D1] text-[#5E5959] hover:text-black"
+                      }`}
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Back to Step 3: Sec 12 Audit</span>
+                    </button>
+                    <span className="text-[11px] opacity-60 font-medium">
+                      Submit Round {negRound} offer or accept landlord demand to unlock Step 5.
+                    </span>
                   </div>
                 )}
               </div>
@@ -2565,8 +2911,7 @@ export default function SettlrODRPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => {
-                          setActiveView("dashboard");
-                          document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
+                          navigateToView("dashboard");
                         }}
                         className={`px-3 py-1.5 rounded-xl border text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
                           isDark
@@ -2575,7 +2920,7 @@ export default function SettlrODRPage() {
                         }`}
                       >
                         <ArrowLeft className="w-3.5 h-3.5" />
-                        <span>← Back to Dashboard</span>
+                        <span>← Back to Step 1: Case Overview</span>
                       </button>
                       <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                         Karnataka Statutory Intake
@@ -3136,7 +3481,7 @@ export default function SettlrODRPage() {
                       <Shield className="w-4 h-4" /> Ready for Statutory ODR Verification
                     </div>
                     <div className="text-[11px] opacity-70">
-                      Dispute intake will immediately apply Karnataka Sec 12 deductions and open the Case Dashboard.
+                      Dispute intake will immediately apply Karnataka Sec 12 deductions and advance to Step 3 Statutory Audit.
                     </div>
                   </div>
 
@@ -3144,14 +3489,13 @@ export default function SettlrODRPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setActiveView("dashboard");
-                        document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
+                        navigateToView("dashboard");
                       }}
                       className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
                         isDark ? "border-[#3A3535] text-[#A8A3A3] hover:text-white" : "border-[#D6D1D1] text-[#5E5959] hover:text-black"
                       }`}
                     >
-                      Cancel
+                      ← Back to Step 1
                     </button>
 
                     <button
@@ -3159,7 +3503,8 @@ export default function SettlrODRPage() {
                       className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs sm:text-sm transition-all shadow-xl shadow-emerald-500/25 flex items-center gap-2 cursor-pointer hover:scale-[1.02]"
                     >
                       <Play className="w-4 h-4 fill-current stroke-none" />
-                      <span>Submit & Run Statutory Audit Engine</span>
+                      <span>Submit Form 1-A & Proceed to Sec 12 Audit (Step 3)</span>
+                      <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                     </button>
                   </div>
                 </div>
