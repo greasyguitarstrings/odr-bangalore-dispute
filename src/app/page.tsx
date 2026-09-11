@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
@@ -9,8 +9,6 @@ import {
   Scale,
   ShieldAlert,
   Handshake,
-  FileCheck2,
-  FileWarning,
   User,
   Sparkles,
   ArrowLeftRight,
@@ -18,7 +16,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   FileText,
-  Clock,
   Camera,
   Sun,
   Moon,
@@ -35,29 +32,32 @@ import {
   Zap,
   Shield,
   TrendingDown,
-  Briefcase,
   BadgeCheck,
   Loader2,
   Download,
   Lock,
-  Unlock,
   FileImage,
-  Receipt,
-  Calendar,
   Award,
   Info,
-  ExternalLink,
+  ArrowRight,
+  ArrowLeft,
+  ArrowDown,
+  Plus,
+  PlusCircle,
 } from "lucide-react";
+
+/* ─── ACTIVE VIEW TYPE ─── */
+export type ActiveView = "dashboard" | "rules" | "negotiation" | "settlement" | "intake";
 
 /* ─── SCROLL ANIMATION CONFIGURATION ─── */
 const scrollFadeVariant = {
-  initial: { opacity: 0, y: 40 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: false, amount: 0.2 },
-  transition: { duration: 0.6 },
+  initial: { opacity: 0, y: 25 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+  transition: { duration: 0.35 },
 };
 
-/* ─── INITIAL 5 DISPUTE CATEGORIES ─── */
+/* ─── CLAIM INTERFACES & SEED DATA ─── */
 interface EvidenceItem {
   id: string;
   name: string;
@@ -86,257 +86,476 @@ interface ClaimItem {
   evidences: EvidenceItem[];
 }
 
-const INITIAL_CLAIMS: ClaimItem[] = [
-  {
-    id: "claim-painting",
-    category: "painting",
-    title: "Full 3BHK Wall Repainting & Primer",
-    subtitle: "Living, master bedroom & corridor emulsion coat",
-    landlordClaim: 35000,
-    tenantCounter: 0,
-    statutoryAllowed: 0,
-    isDisputedByTenant: true,
-    statuteApplied: false,
-    legalBadge: "Sec 12: Normal Wear & Tear Exempt (Tenancy >= 12 mos)",
-    legalNote:
-      "Under Section 12 of the Karnataka Rent Control Act and prevailing HC precedents, ordinary wall scuffs and weathering after 36 months tenancy are classified as fair wear & tear. Repainting deduction is legally capped at ₹0 unless deliberate structural vandalism is proven.",
-    landlordRationale:
-      "Lease clause 14 mandates tenant pays 1 month rent or ₹35,000 for full Asian Paints Royale repaint upon exit.",
-    tenantRebuttal:
-      "Occupied flat for 3 years (36 months). Walls show only picture-frame hooks and natural fading. Disputing entire ₹35k claim.",
-    evidences: [
-      {
-        id: "ev-paint-1",
-        name: "Living_Room_MoveIn_2023.jpg",
-        type: "Move-In Photo",
-        size: "3.2 MB",
-        timestamp: "15 Mar 2023, 11:30 AM",
-        verifiedBy: "Bengaluru Move-In Inventory Ledger",
-        imageUrl:
-          "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80",
-        description: "Fresh emulsion baseline documented at handover.",
-      },
-      {
-        id: "ev-paint-2",
-        name: "Wall_Scuff_Handover_2026.jpg",
-        type: "Move-Out Photo",
-        size: "2.8 MB",
-        timestamp: "15 Mar 2026, 04:15 PM",
-        verifiedBy: "Prestige Security Check-Out Form",
-        imageUrl:
-          "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=800&q=80",
-        description:
-          "Minor picture nail holes filled; standard 36-month ambient fading.",
-      },
-    ],
-  },
-  {
-    id: "claim-geyser",
-    category: "geyser",
-    title: "Fixture Damage — Master Bath Bajaj 15L Geyser",
-    subtitle: "Heating coil scale & exterior enclosure replacement claim",
-    landlordClaim: 20000,
-    tenantCounter: 12000,
-    statutoryAllowed: 12000,
-    isDisputedByTenant: true,
-    statuteApplied: false,
-    legalBadge: "10% Straight-Line Cap over 4 years",
-    legalNote:
-      "Under statutory asset depreciation norms, water heaters carry a 10% per annum straight-line depreciation rate. Given 4-year total asset age (installed 2022), ₹8,000 depreciation applies. Permissible recovery is capped at ₹12,000.",
-    landlordRationale:
-      "Appliance heating coil had mineral calcification and outer casing has small scrape. Claiming complete new replacement unit at ₹20,000.",
-    tenantRebuttal:
-      "Geyser was manufactured in 2022. Borewell hard water caused standard scaling. Offered ₹12,000 depreciated fair value.",
-    evidences: [
-      {
-        id: "ev-geyser-1",
-        name: "Bajaj_Geyser_Invoice_2022.pdf",
-        type: "Purchase Bill",
-        size: "1.1 MB",
-        timestamp: "10 Jun 2022",
-        verifiedBy: "Croma Retail Indiranagar GST Receipt",
-        imageUrl:
-          "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?auto=format&fit=crop&w=800&q=80",
-        description: "Original purchase receipt proving 4-year machine age.",
-      },
-    ],
-  },
-  {
-    id: "claim-cleaning",
-    category: "cleaning",
-    title: "Professional Kitchen & Bathroom Deep Sanitization",
-    subtitle: "Industrial chimney degreasing & acid tile scrub claim",
-    landlordClaim: 12000,
-    tenantCounter: 4000,
-    statutoryAllowed: 4500,
-    isDisputedByTenant: true,
-    statuteApplied: false,
-    legalBadge: "Bengaluru standard 2BHK/3BHK benchmark cap (₹4,500)",
-    legalNote:
-      "Standard residential benchmark for certified Urban Company / professional 3BHK deep cleaning in Bengaluru is capped at ₹4,500. Deductions of ₹12,000 for regular housekeeping handovers are excessive and unsupportable without commercial chemical damage invoices.",
-    landlordRationale:
-      "Hired premium specialty contractors for whole flat sanitization, oil baffle cleaning, and granite polish at ₹12,000.",
-    tenantRebuttal:
-      "Premises were broom-cleaned and mopped on departure. Standard market rate for deep clean is ₹4,000. ₹12k is exorbitant.",
-    evidences: [
-      {
-        id: "ev-clean-1",
-        name: "Handover_Kitchen_Tidy.jpg",
-        type: "Handover Record",
-        size: "2.4 MB",
-        timestamp: "15 Mar 2026, 03:00 PM",
-        verifiedBy: "WhatsApp Tenant-Landlord Log",
-        imageUrl:
-          "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80",
-        description: "Countertops cleared and wiped down at key return.",
-      },
-    ],
-  },
-  {
-    id: "claim-bescom",
-    category: "bescom",
-    title: "BESCOM Electricity Meter Arrears (Final Bill)",
-    subtitle: "RR No: E4-892401 • Pro-rated final consumption cycle",
-    landlordClaim: 3500,
-    tenantCounter: 3500,
-    statutoryAllowed: 3500,
-    isDisputedByTenant: false,
-    statuteApplied: false,
-    legalBadge: "Verified Actuals — Approved at Face Value",
-    legalNote:
-      "Utility meter readings confirmed on handover date via BESCOM consumer portal. Both parties agree on actual kilowatt-hour consumption arrears.",
-    landlordRationale:
-      "Final power bill generated on 16 March shows ₹3,500 balance for the preceding 28 days.",
-    tenantRebuttal:
-      "Agreed without dispute. Meter photo confirms reading; tenant willing to clear full ₹3,500.",
-    evidences: [
-      {
-        id: "ev-bescom-1",
-        name: "BESCOM_Meter_Photo_15Mar.jpg",
-        type: "Utility Meter",
-        size: "1.8 MB",
-        timestamp: "15 Mar 2026, 05:00 PM",
-        verifiedBy: "BESCOM Online Portal E4-892401",
-        imageUrl:
-          "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&w=800&q=80",
-        description: "Physical meter photo matching online bill cycle balance.",
-      },
-    ],
-  },
-  {
-    id: "claim-notice",
-    category: "notice",
-    title: "Unpaid Rent / Notice Period Shortfall Penalty",
-    subtitle: "Alleged early vacation penalty of 17 days",
-    landlordClaim: 11500,
-    tenantCounter: 0,
-    statutoryAllowed: 0,
-    isDisputedByTenant: true,
-    statuteApplied: false,
-    legalBadge: "30-Day WhatsApp / Written Notice Verified (₹0 Penalty)",
-    legalNote:
-      "Under Karnataka tenancy contract rules, verified written intimations via WhatsApp or Registered Post satisfying the agreed 30-day notice period discharge the tenant of early-exit penalties. Penalty claim of ₹11,500 is disallowed.",
-    landlordRationale:
-      "Tenant vacated on 15 March rather than the calendar month end of 31 March; claiming half-month rent shortfall.",
-    tenantRebuttal:
-      "Formal written notice sent on 15 January (60 days in advance) via email and WhatsApp. Handover agreed on 15 March.",
-    evidences: [
-      {
-        id: "ev-notice-1",
-        name: "WhatsApp_Notice_Jan15.pdf",
-        type: "Written Notice",
-        size: "820 KB",
-        timestamp: "15 Jan 2026, 09:12 AM",
-        verifiedBy: "Digital Timestamped Chat Export",
-        imageUrl:
-          "https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=800&q=80",
-        description: "Landlord acknowledgment: 'Noted Rohan, 15 March key handover confirmed.'",
-      },
-    ],
-  },
+/* ─── DEDUCTION CLAIM & DISPUTE CASE TYPES ─── */
+export interface DeductionClaim {
+  item: string;
+  claimed: number;
+  category: "wear_and_tear" | "cleaning" | "fixture" | "utility" | "notice";
+  allowed?: number;
+}
+
+export interface DisputeCase {
+  id: string;
+  address: string;
+  tenant: string;
+  tenantContact: string;
+  landlord: string;
+  landlordContact: string;
+  depositAmount: number;
+  monthlyRent: number;
+  deductionsClaimed: DeductionClaim[];
+  claims: ClaimItem[];
+  auditState: "idle" | "running" | "completed";
+  auditProgress: number;
+  negRound: number;
+  landlordOffer: number;
+  tenantOffer: number;
+  counterSlider: number;
+  isSettled: boolean;
+  tenantSigned: boolean;
+  landlordSigned: boolean;
+  tenantSignTime: string;
+  landlordSignTime: string;
+}
+
+export const BANGALORE_ADDRESS_PRESETS = [
+  "Prestige Shantiniketan, Whitefield - 560048",
+  "Sobha Dream Acres, Panathur / Balagere - 560087",
+  "Salarpuria Sattva Greenage, Hosur Road - 560068",
+  "Custom Address...",
 ];
 
+export function buildClaimsForCase(
+  caseId: string,
+  deductions: DeductionClaim[],
+  auditDone: boolean = false
+): ClaimItem[] {
+  return deductions.map((d, idx) => {
+    if (d.category === "wear_and_tear") {
+      const allowed = 0;
+      return {
+        id: `claim-${caseId}-paint-${idx}`,
+        category: "painting" as const,
+        title: d.item,
+        subtitle: "Wall surface weathering, primer coat & ambient discoloration",
+        landlordClaim: d.claimed,
+        tenantCounter: 0,
+        statutoryAllowed: allowed,
+        isDisputedByTenant: true,
+        statuteApplied: auditDone,
+        legalBadge: "Sec 12: Wear & Tear Exempt (Allowed: ₹0)",
+        legalNote:
+          "Under Section 12 & 13 of Karnataka Rent Control Act, 1999, wall surface weathering after occupancy is normal wear & tear. Painting deductions are capped at ₹0.",
+        landlordRationale: `Lease clause stipulates automatic repaint deduction of ₹${d.claimed.toLocaleString("en-IN")} at handover.`,
+        tenantRebuttal: "Natural ambient fading only. Slashed to ₹0 under Karnataka Rent Control Section 12.",
+        evidences: [
+          {
+            id: `ev-${caseId}-p1`,
+            name: "Wall_Scuff_Handover.jpg",
+            type: "Move-Out Photo",
+            size: "2.8 MB",
+            timestamp: "Handover Inspection",
+            verifiedBy: "Bengaluru Move-Out Inventory Ledger",
+            imageUrl:
+              "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=800&q=80",
+            description: "Minor nail holes filled; natural ambient fading after occupancy.",
+          },
+        ],
+      };
+    } else if (d.category === "cleaning") {
+      const allowed = Math.min(d.claimed, 4500);
+      return {
+        id: `claim-${caseId}-clean-${idx}`,
+        category: "cleaning" as const,
+        title: d.item,
+        subtitle: "Complete deep cleaning & surface sanitization",
+        landlordClaim: d.claimed,
+        tenantCounter: allowed,
+        statutoryAllowed: allowed,
+        isDisputedByTenant: true,
+        statuteApplied: auditDone,
+        legalBadge: `Bengaluru 3BHK Benchmark Cap (₹${allowed.toLocaleString("en-IN")})`,
+        legalNote: `Bengaluru district consumer court guidelines cap turnover professional deep cleaning at ₹4,500. Excess ₹${Math.max(0, d.claimed - 4500).toLocaleString("en-IN")} is disallowed.`,
+        landlordRationale: `Third-party vendor quotation of ₹${d.claimed.toLocaleString("en-IN")} for deep sanitization.`,
+        tenantRebuttal: `Flat handed over swept & mopped. Statutory Bengaluru benchmark caps recovery at ₹${allowed.toLocaleString("en-IN")}.`,
+        evidences: [
+          {
+            id: `ev-${caseId}-c1`,
+            name: "Deep_Clean_Vendor_Bill.pdf",
+            type: "Vendor Receipt",
+            size: "940 KB",
+            timestamp: "Handover Inspection",
+            verifiedBy: "Bengaluru Consumer Benchmarks",
+            imageUrl:
+              "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80",
+            description: "Vendor sanitization quote scaled down to prevailing statutory ceiling.",
+          },
+        ],
+      };
+    } else if (d.category === "fixture") {
+      const allowed = Math.round(d.claimed * 0.9);
+      return {
+        id: `claim-${caseId}-fix-${idx}`,
+        category: "geyser" as const,
+        title: d.item,
+        subtitle: "Electrical fixture, geyser, or chrome hardware repair/replacement",
+        landlordClaim: d.claimed,
+        tenantCounter: allowed,
+        statutoryAllowed: allowed,
+        isDisputedByTenant: true,
+        statuteApplied: auditDone,
+        legalBadge: `10% Straight-Line Depreciation (Allowed: ₹${allowed.toLocaleString("en-IN")})`,
+        legalNote: `Under statutory appliance depreciation schedules, fixtures carry a 10% straight-line annual depreciation. Recovery capped at ₹${allowed.toLocaleString("en-IN")}.`,
+        landlordRationale: `Demanding hardware fixture replacement at ₹${d.claimed.toLocaleString("en-IN")} invoice cost.`,
+        tenantRebuttal: `10% depreciation deducted under judicial guidelines. Fair offer: ₹${allowed.toLocaleString("en-IN")}.`,
+        evidences: [
+          {
+            id: `ev-${caseId}-f1`,
+            name: "Fixture_Inspection_Photo.jpg",
+            type: "Purchase Bill",
+            size: "1.1 MB",
+            timestamp: "10 Jun 2022",
+            verifiedBy: "Retail GST Receipt",
+            imageUrl:
+              "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?auto=format&fit=crop&w=800&q=80",
+            description: "Fixture repair assessment invoice with 10% annual depreciation applied.",
+          },
+        ],
+      };
+    } else {
+      // utility / maintenance
+      const allowed = d.claimed;
+      return {
+        id: `claim-${caseId}-util-${idx}`,
+        category: "bescom" as const,
+        title: d.item,
+        subtitle: "Unpaid BESCOM electricity / BWSSB water / society maintenance",
+        landlordClaim: d.claimed,
+        tenantCounter: allowed,
+        statutoryAllowed: allowed,
+        isDisputedByTenant: false,
+        statuteApplied: auditDone,
+        legalBadge: "Actuals Approved (Sec 14 Verifiable Bills)",
+        legalNote:
+          "Under Section 14 of Karnataka Rent Control Act, 1999, utility charges are allowable based on verifiable consumption bills. Permitted at actuals.",
+        landlordRationale: `Final meter reading calculation & maintenance dues totaling ₹${d.claimed.toLocaleString("en-IN")}.`,
+        tenantRebuttal: `Tenant consents to actual consumption utility deduction of ₹${allowed.toLocaleString("en-IN")}.`,
+        evidences: [
+          {
+            id: `ev-${caseId}-u1`,
+            name: "BESCOM_Final_Bill.pdf",
+            type: "Utility Invoice",
+            size: "620 KB",
+            timestamp: "Vacating Meter Reading",
+            verifiedBy: "BESCOM Online Consumer Portal",
+            imageUrl:
+              "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80",
+            description: "Certified BESCOM utility bill with final cycle consumption units.",
+          },
+        ],
+      };
+    }
+  });
+}
+
+const DEFAULT_CASE: DisputeCase = {
+  id: "BLR-2026-8941",
+  address: "Flat 402, Tower 3, Prestige Shantiniketan, Whitefield, Bengaluru - 560048",
+  tenant: "Rohan Sharma",
+  tenantContact: "+91 98801 23456",
+  landlord: "Venkatesh Rao",
+  landlordContact: "+91 94480 87654",
+  depositAmount: 150000,
+  monthlyRent: 25000,
+  deductionsClaimed: [
+    { item: "Painting & Touch-up", claimed: 28000, category: "wear_and_tear", allowed: 0 },
+    { item: "Deep Cleaning", claimed: 8500, category: "cleaning", allowed: 4500 },
+    { item: "Bathroom Fixture Replacement", claimed: 6500, category: "fixture", allowed: 5850 },
+  ],
+  claims: [
+    {
+      id: "claim-painting",
+      category: "painting",
+      title: "Painting & Touch-up",
+      subtitle: "Living, master bedroom & corridor emulsion coat",
+      landlordClaim: 28000,
+      tenantCounter: 0,
+      statutoryAllowed: 0,
+      isDisputedByTenant: true,
+      statuteApplied: false,
+      legalBadge: "Sec 12: Wear & Tear Exempt (Allowed: ₹0)",
+      legalNote:
+        "Under Section 12 & 13 of Karnataka Rent Control Act, 1999 and HC rulings, wall surface weathering after 36 months of tenancy constitutes ordinary wear & tear. Painting deductions are capped at ₹0.",
+      landlordRationale:
+        "Lease clause 14 stipulates automatic repaint deduction of ₹28,000 at handover.",
+      tenantRebuttal:
+        "Normal ambient fading only. Slashed to ₹0 under Karnataka Rent Control Section 12.",
+      evidences: [
+        {
+          id: "ev-paint-1",
+          name: "Living_Room_MoveIn_2023.jpg",
+          type: "Move-In Photo",
+          size: "3.2 MB",
+          timestamp: "15 Mar 2023, 11:30 AM",
+          verifiedBy: "Bengaluru Move-In Inventory Ledger",
+          imageUrl:
+            "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80",
+          description: "Emulsion baseline documented at move-in handover.",
+        },
+        {
+          id: "ev-paint-2",
+          name: "Wall_Scuff_Handover_2026.jpg",
+          type: "Move-Out Photo",
+          size: "2.8 MB",
+          timestamp: "15 Mar 2026, 04:15 PM",
+          verifiedBy: "Prestige Security Check-Out Form",
+          imageUrl:
+            "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=800&q=80",
+          description: "Minor nail holes filled; natural 36-month ambient fading.",
+        },
+      ],
+    },
+    {
+      id: "claim-cleaning",
+      category: "cleaning",
+      title: "Deep Cleaning",
+      subtitle: "Kitchen & bathroom acid descaling and balcony power wash",
+      landlordClaim: 8500,
+      tenantCounter: 4500,
+      statutoryAllowed: 4500,
+      isDisputedByTenant: true,
+      statuteApplied: false,
+      legalBadge: "Bengaluru 3BHK Benchmark Cap (₹4,500)",
+      legalNote:
+        "Standard residential benchmark for certified professional deep sanitization in Bengaluru is capped at ₹4,500. Excess ₹4,000 is disallowed under Section 12.",
+      landlordRationale:
+        "Demanding ₹8,500 based on private cleaning vendor estimate.",
+      tenantRebuttal:
+        "Flat handed over swept & mopped. Statutory Bengaluru benchmark caps recovery at ₹4,500.",
+      evidences: [
+        {
+          id: "ev-clean-1",
+          name: "Handover_Kitchen_Tidy.jpg",
+          type: "Handover Record",
+          size: "2.4 MB",
+          timestamp: "15 Mar 2026, 03:00 PM",
+          verifiedBy: "WhatsApp Tenant-Landlord Log",
+          imageUrl:
+            "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80",
+          description: "Kitchen surfaces mopped and wiped clean at key handover.",
+        },
+      ],
+    },
+    {
+      id: "claim-geyser",
+      category: "geyser",
+      title: "Bathroom Fixture Replacement",
+      subtitle: "Master bath geyser and chrome fitting repairs",
+      landlordClaim: 6500,
+      tenantCounter: 5850,
+      statutoryAllowed: 5850,
+      isDisputedByTenant: true,
+      statuteApplied: false,
+      legalBadge: "10% Straight-Line Depreciation Cap (Allowed: ₹5,850)",
+      legalNote:
+        "Under statutory appliance depreciation schedules, fixtures carry a 10% per annum straight-line rate. Recovery capped at ₹5,850.",
+      landlordRationale:
+        "Demanding complete hardware replacement unit at ₹6,500 invoice cost.",
+      tenantRebuttal:
+        "10% depreciation deducted under judicial guidelines. Fair offer: ₹5,850.",
+      evidences: [
+        {
+          id: "ev-geyser-1",
+          name: "Bajaj_Geyser_Invoice_2022.pdf",
+          type: "Purchase Bill",
+          size: "1.1 MB",
+          timestamp: "10 Jun 2022",
+          verifiedBy: "Croma Retail Indiranagar GST Receipt",
+          imageUrl:
+            "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?auto=format&fit=crop&w=800&q=80",
+          description: "Original purchase bill confirming fixture installation.",
+        },
+      ],
+    },
+  ],
+  auditState: "idle",
+  auditProgress: 0,
+  negRound: 1,
+  landlordOffer: 43000,
+  tenantOffer: 0,
+  counterSlider: 10350,
+  isSettled: false,
+  tenantSigned: false,
+  landlordSigned: false,
+  tenantSignTime: "",
+  landlordSignTime: "",
+};
+
+const INITIAL_CLAIMS: ClaimItem[] = DEFAULT_CASE.claims;
+
 export default function SettlrODRPage() {
-  /* ─── STATE MANAGEMENT ─── */
+  /* ─── CASE STATE MANAGEMENT ─── */
+  const [cases, setCases] = useState<DisputeCase[]>([DEFAULT_CASE]);
+  const [activeCaseId, setActiveCaseId] = useState<string>("BLR-2026-8941");
+  const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Form 1-A Legal Intake & Filing Fields
+  const [formTenantName, setFormTenantName] = useState("Ananya Iyer");
+  const [formTenantContact, setFormTenantContact] = useState("+91 98860 12456");
+  const [formLandlordName, setFormLandlordName] = useState("K. V. Subhash");
+  const [formLandlordContact, setFormLandlordContact] = useState("+91 94481 65432");
+  const [formLandlordAddress, setFormLandlordAddress] = useState("Flat 804, Tower 12, Sobha Dream Acres, Panathur - 560087");
+  const [formAddressPreset, setFormAddressPreset] = useState(BANGALORE_ADDRESS_PRESETS[1]);
+  const [formCustomAddress, setFormCustomAddress] = useState("");
+  const [formStartDate, setFormStartDate] = useState("2024-04-01");
+  const [formVacatingDate, setFormVacatingDate] = useState("2026-03-31");
+  const [formDepositAmount, setFormDepositAmount] = useState(200000);
+  const [formMonthlyRent, setFormMonthlyRent] = useState(32000);
+  const [formPaintingClaimed, setFormPaintingClaimed] = useState(35000);
+  const [formCleaningClaimed, setFormCleaningClaimed] = useState(9500);
+  const [formFixtureClaimed, setFormFixtureClaimed] = useState(8000);
+  const [formUtilityClaimed, setFormUtilityClaimed] = useState(3200);
+
+  // Section C Statutory Declarations
+  const [declHandoverKeys, setDeclHandoverKeys] = useState(true);
+  const [declSec12WearAndTear, setDeclSec12WearAndTear] = useState(true);
+  const [declAlgorithmicODR, setDeclAlgorithmicODR] = useState(true);
+  const [intakeStep, setIntakeStep] = useState<1 | 2 | 3>(1);
+
+  // Active Case Lookup
+  const activeCase = cases.find((c) => c.id === activeCaseId) || cases[0];
+
+  /* ─── CORE VIEW & THEME STATE ─── */
+  const [activeView, setActiveView] = useState<ActiveView>("dashboard");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [perspective, setPerspective] = useState<"tenant" | "landlord" | "conciliator">("tenant");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [claims, setClaims] = useState<ClaimItem[]>(INITIAL_CLAIMS);
 
-  // Evidence preview modal
+  // Active Case Execution State
+  const [claims, setClaims] = useState<ClaimItem[]>(DEFAULT_CASE.claims);
+  const [expandedClaims, setExpandedClaims] = useState<Record<string, boolean>>({});
+  const [showCaseParticulars, setShowCaseParticulars] = useState(false);
   const [previewEvidence, setPreviewEvidence] = useState<EvidenceItem | null>(null);
-  const [expandedAccordion, setExpandedAccordion] = useState<string | null>("claim-painting");
 
   // Section 2: Statutory Audit state
-  const [auditState, setAuditState] = useState<"idle" | "running" | "completed">("idle");
-  const [auditProgress, setAuditProgress] = useState(0);
+  const [auditState, setAuditState] = useState<"idle" | "running" | "completed">(DEFAULT_CASE.auditState);
+  const [auditProgress, setAuditProgress] = useState(DEFAULT_CASE.auditProgress);
 
   // Section 3: Negotiation state
-  const [negRound, setNegRound] = useState(1);
-  const [landlordOffer, setLandlordOffer] = useState(82000);
-  const [tenantOffer, setTenantOffer] = useState(10000);
-  const [counterSlider, setCounterSlider] = useState(20000);
-  const [isSettled, setIsSettled] = useState(false);
+  const [negRound, setNegRound] = useState(DEFAULT_CASE.negRound);
+  const [landlordOffer, setLandlordOffer] = useState(DEFAULT_CASE.landlordOffer);
+  const [tenantOffer, setTenantOffer] = useState(DEFAULT_CASE.tenantOffer);
+  const [counterSlider, setCounterSlider] = useState(DEFAULT_CASE.counterSlider);
+  const [isSettled, setIsSettled] = useState(DEFAULT_CASE.isSettled);
 
   // Section 4: Digital signatures
-  const [tenantSigned, setTenantSigned] = useState(false);
-  const [landlordSigned, setLandlordSigned] = useState(false);
-  const [tenantSignTime, setTenantSignTime] = useState("");
-  const [landlordSignTime, setLandlordSignTime] = useState("");
+  const [tenantSigned, setTenantSigned] = useState(DEFAULT_CASE.tenantSigned);
+  const [landlordSigned, setLandlordSigned] = useState(DEFAULT_CASE.landlordSigned);
+  const [tenantSignTime, setTenantSignTime] = useState(DEFAULT_CASE.tenantSignTime);
+  const [landlordSignTime, setLandlordSignTime] = useState(DEFAULT_CASE.landlordSignTime);
+
+  // Live pitch walkthrough automation
+  const [isPitching, setIsPitching] = useState(false);
 
   const isDark = theme === "dark";
 
   // Financial calculations
-  const totalDepositEscrow = 200000;
-  const initialLandlordTotal = claims.reduce((acc, c) => acc + c.landlordClaim, 0); // 82,000
-  const tenantCurrentOffers = claims.reduce((acc, c) => acc + (c.isDisputedByTenant ? c.tenantCounter : c.landlordClaim), 0);
-  
-  // Audited total deductions
-  const auditedDeductions = claims.reduce((acc, c) => {
-    if (auditState === "completed") {
-      return acc + c.statutoryAllowed;
-    }
-    return acc + (c.isDisputedByTenant ? c.tenantCounter : c.landlordClaim);
-  }, 0);
+  const totalDepositEscrow = activeCase.depositAmount;
+  const initialLandlordTotal = claims.reduce((acc, c) => acc + c.landlordClaim, 0);
+  const statutoryCap = claims.reduce((acc, c) => acc + c.statutoryAllowed, 0);
+  const totalSlashed = Math.max(0, initialLandlordTotal - statutoryCap);
 
-  const activeDeduction = isSettled ? 20000 : auditState === "completed" ? 20000 : landlordOffer;
-  const netRefundAmount = totalDepositEscrow - activeDeduction;
+  const activeDeduction = isSettled
+    ? landlordOffer
+    : auditState === "completed"
+    ? statutoryCap
+    : landlordOffer;
+  const netRefund = totalDepositEscrow - activeDeduction;
 
   // Negotiation Gap
   const currentGap = Math.abs(landlordOffer - tenantOffer);
-  const gapPercentage = Math.round((currentGap / initialLandlordTotal) * 100);
+  const gapPercentage = initialLandlordTotal > 0 ? Math.round((currentGap / initialLandlordTotal) * 100) : 0;
 
-  /* ─── SCROLL HELPERS ─── */
-  const scrollToSection = (sectionId: string) => {
-    const el = document.getElementById(sectionId);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+  // Sync active case changes into cases array
+  const syncActiveCaseToCases = (updates: Partial<DisputeCase>) => {
+    setCases((prev) =>
+      prev.map((c) => (c.id === activeCaseId ? { ...c, ...updates } : c))
+    );
+  };
+
+  /* ─── SWITCH ACTIVE CASE ─── */
+  const switchCase = (id: string) => {
+    const target = cases.find((c) => c.id === id);
+    if (!target) return;
+    setActiveCaseId(id);
+    setClaims(target.claims);
+    setAuditState(target.auditState);
+    setAuditProgress(target.auditProgress);
+    setNegRound(target.negRound);
+    setLandlordOffer(target.landlordOffer);
+    setTenantOffer(target.tenantOffer);
+    setCounterSlider(target.counterSlider);
+    setIsSettled(target.isSettled);
+    setTenantSigned(target.tenantSigned);
+    setLandlordSigned(target.landlordSigned);
+    setTenantSignTime(target.tenantSignTime);
+    setLandlordSignTime(target.landlordSignTime);
+    setExpandedClaims({});
+    setToastMessage(`Switched to Case #${target.id} (${target.address.split(",")[0]})`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  /* ─── TOGGLE CLAIM ACCORDION ─── */
+  const toggleClaimAccordion = (id: string) => {
+    setExpandedClaims((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  /* ─── TOGGLE CLAIM DISPUTE STATUS ─── */
+  const toggleClaimDispute = (id: string) => {
+    const updated = claims.map((c) => {
+      if (c.id === id) {
+        return { ...c, isDisputedByTenant: !c.isDisputedByTenant };
+      }
+      return c;
+    });
+    setClaims(updated);
+    syncActiveCaseToCases({ claims: updated });
   };
 
   /* ─── QUICK TRIGGER 1: RUN STATUTORY AUDIT ─── */
   const handleTriggerAudit = () => {
-    scrollToSection("section-statutory-audit");
+    setActiveView("rules");
     if (auditState === "completed") return;
 
     setAuditState("running");
     setAuditProgress(0);
+    syncActiveCaseToCases({ auditState: "running", auditProgress: 0 });
 
     let p = 0;
     const interval = setInterval(() => {
-      p += 20;
+      p += 25;
       setAuditProgress(p);
       if (p >= 100) {
         clearInterval(interval);
         setAuditState("completed");
-        setClaims((prev) =>
-          prev.map((c) => ({
-            ...c,
-            statuteApplied: true,
-          }))
-        );
-        setLandlordOffer(20000);
-        setCounterSlider(20000);
+        const updatedClaims = claims.map((c) => ({
+          ...c,
+          statuteApplied: true,
+        }));
+        setClaims(updatedClaims);
+        setLandlordOffer(statutoryCap);
+        setCounterSlider(statutoryCap);
+        syncActiveCaseToCases({
+          auditState: "completed",
+          auditProgress: 100,
+          claims: updatedClaims,
+          landlordOffer: statutoryCap,
+          counterSlider: statutoryCap,
+        });
 
         confetti({
           particleCount: 70,
@@ -345,22 +564,30 @@ export default function SettlrODRPage() {
           colors: ["#34D399", "#10B981", "#E0DDDD"],
         });
       }
-    }, 280);
+    }, 240);
   };
 
   /* ─── QUICK TRIGGER 2: FAST-FORWARD SETTLEMENT ─── */
   const handleFastForward = () => {
     setAuditState("completed");
-    setClaims((prev) =>
-      prev.map((c) => ({
-        ...c,
-        statuteApplied: true,
-      }))
-    );
-    setLandlordOffer(20000);
-    setTenantOffer(20000);
-    setCounterSlider(20000);
+    const updatedClaims = claims.map((c) => ({
+      ...c,
+      statuteApplied: true,
+    }));
+    setClaims(updatedClaims);
+    setLandlordOffer(statutoryCap);
+    setTenantOffer(statutoryCap);
+    setCounterSlider(statutoryCap);
     setIsSettled(true);
+    syncActiveCaseToCases({
+      auditState: "completed",
+      auditProgress: 100,
+      claims: updatedClaims,
+      landlordOffer: statutoryCap,
+      tenantOffer: statutoryCap,
+      counterSlider: statutoryCap,
+      isSettled: true,
+    });
 
     confetti({
       particleCount: 140,
@@ -369,22 +596,45 @@ export default function SettlrODRPage() {
       colors: ["#34D399", "#10B981", "#6EE7B7", "#E0DDDD", "#FFD700"],
     });
 
-    setTimeout(() => {
-      scrollToSection("section-settlement-deed");
-    }, 300);
+    setActiveView("settlement");
   };
 
-  /* ─── TOGGLE CLAIM DISPUTE STATUS ─── */
-  const toggleClaimDispute = (id: string) => {
-    setClaims((prev) =>
-      prev.map((c) => {
-        if (c.id === id) {
-          const next = !c.isDisputedByTenant;
-          return { ...c, isDisputedByTenant: next };
-        }
-        return c;
-      })
-    );
+  /* ─── QUICK TRIGGER 3: 1-CLICK PITCH DEMO ─── */
+  const runPitchDemo = () => {
+    setIsPitching(true);
+    setPerspective("tenant");
+    setActiveView("dashboard");
+
+    setTimeout(() => {
+      setPerspective("landlord");
+    }, 1800);
+
+    setTimeout(() => {
+      setPerspective("conciliator");
+      setActiveView("rules");
+      handleTriggerAudit();
+    }, 3500);
+
+    setTimeout(() => {
+      setActiveView("negotiation");
+      handleMakeOffer(statutoryCap);
+    }, 5800);
+
+    setTimeout(() => {
+      setActiveView("settlement");
+      const timeStr = new Date().toLocaleString("en-IN");
+      setTenantSigned(true);
+      setTenantSignTime(timeStr);
+      setLandlordSigned(true);
+      setLandlordSignTime(timeStr);
+      syncActiveCaseToCases({
+        tenantSigned: true,
+        tenantSignTime: timeStr,
+        landlordSigned: true,
+        landlordSignTime: timeStr,
+      });
+      setIsPitching(false);
+    }, 7800);
   };
 
   /* ─── NEGOTIATION SUBMIT OFFER ─── */
@@ -392,10 +642,14 @@ export default function SettlrODRPage() {
     setTenantOffer(offerAmount);
     const newGap = Math.abs(landlordOffer - offerAmount);
 
-    if (newGap <= 4100 || offerAmount === 20000) {
-      // Gap <= 5% (₹4,100) or matching statutory cap!
+    if (newGap <= 4100 || offerAmount === statutoryCap) {
       setIsSettled(true);
       setLandlordOffer(offerAmount);
+      syncActiveCaseToCases({
+        tenantOffer: offerAmount,
+        landlordOffer: offerAmount,
+        isSettled: true,
+      });
 
       confetti({
         particleCount: 150,
@@ -405,20 +659,29 @@ export default function SettlrODRPage() {
       });
 
       setTimeout(() => {
-        scrollToSection("section-settlement-deed");
+        setActiveView("settlement");
       }, 700);
     } else {
-      // Next round
       if (negRound < 3) {
-        setNegRound((prev) => prev + 1);
-        // Landlord concedes partially
-        setLandlordOffer((prev) => Math.max(offerAmount, Math.round(prev - (prev - offerAmount) * 0.4)));
+        const nextRound = negRound + 1;
+        const newDemand = Math.max(offerAmount, Math.round(landlordOffer - (landlordOffer - offerAmount) * 0.4));
+        setNegRound(nextRound);
+        setLandlordOffer(newDemand);
+        syncActiveCaseToCases({
+          tenantOffer: offerAmount,
+          negRound: nextRound,
+          landlordOffer: newDemand,
+        });
       } else {
-        // Final round auto-converge to split
         const compromise = Math.round((landlordOffer + offerAmount) / 2);
         setLandlordOffer(compromise);
         setTenantOffer(compromise);
         setIsSettled(true);
+        syncActiveCaseToCases({
+          tenantOffer: compromise,
+          landlordOffer: compromise,
+          isSettled: true,
+        });
 
         confetti({
           particleCount: 120,
@@ -427,28 +690,195 @@ export default function SettlrODRPage() {
         });
 
         setTimeout(() => {
-          scrollToSection("section-settlement-deed");
+          setActiveView("settlement");
         }, 700);
       }
     }
   };
 
-  /* ─── RESET DEMO ─── */
-  const handleReset = () => {
-    setClaims(INITIAL_CLAIMS);
-    setAuditState("idle");
-    setAuditProgress(0);
+  /* ─── INTAKE VIEW NAVIGATION & DEMO SEEDING ─── */
+  const openIntakeView = () => {
+    setActiveView("intake");
+    setIsSidebarOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSeedDemoCase = () => {
+    setFormTenantName("Ananya Iyer");
+    setFormTenantContact("+91 98860 12456");
+    setFormLandlordName("K. V. Subhash");
+    setFormLandlordContact("+91 94481 65432");
+    setFormLandlordAddress("Flat 804, Tower 12, Sobha Dream Acres, Panathur - 560087");
+    setFormAddressPreset(BANGALORE_ADDRESS_PRESETS[1]);
+    setFormCustomAddress("");
+    setFormStartDate("2024-04-01");
+    setFormVacatingDate("2026-03-31");
+    setFormDepositAmount(200000);
+    setFormMonthlyRent(32000);
+    setFormPaintingClaimed(35000);
+    setFormCleaningClaimed(9500);
+    setFormFixtureClaimed(8000);
+    setFormUtilityClaimed(3200);
+    setDeclHandoverKeys(true);
+    setDeclSec12WearAndTear(true);
+    setDeclAlgorithmicODR(true);
+    setToastMessage("⚡ Demo case data populated for Sobha Dream Acres!");
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  /* ─── CREATE NEW DISPUTE CASE & RUN STATUTORY AUDIT ─── */
+  const handleCreateDisputeCase = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    if (!declSec12WearAndTear || !declAlgorithmicODR) {
+      setToastMessage("⚠️ Please agree to statutory wear & tear and algorithmic mediation declarations.");
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
+
+    const newId = `BLR-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const selectedAddress =
+      formAddressPreset === "Custom Address..."
+        ? formCustomAddress.trim() || "Flat 204, Brigade Gateway, Malleshwaram, Bengaluru - 560055"
+        : formAddressPreset;
+
+    const paintingClaimed = Number(formPaintingClaimed) || 0;
+    const cleaningClaimed = Number(formCleaningClaimed) || 0;
+    const fixtureClaimed = Number(formFixtureClaimed) || 0;
+    const utilityClaimed = Number(formUtilityClaimed) || 0;
+
+    // Statutory calculation under Karnataka Sec 12 rules:
+    const allowedPainting = 0; // Sec 12: Normal wear & tear zero-out
+    const allowedCleaning = Math.min(cleaningClaimed, 4500); // Bengaluru benchmark ceiling
+    const allowedFixture = Math.round(fixtureClaimed * 0.9); // 10% statutory depreciation
+    const allowedUtility = utilityClaimed; // Actuals approved under Sec 14
+
+    const deductions: DeductionClaim[] = [
+      {
+        item: "Painting & Wall Restoration",
+        claimed: paintingClaimed,
+        category: "wear_and_tear",
+        allowed: allowedPainting,
+      },
+      {
+        item: "Deep Cleaning & Turnover Sanitization",
+        claimed: cleaningClaimed,
+        category: "cleaning",
+        allowed: allowedCleaning,
+      },
+      {
+        item: "Appliance / Fixture Damage",
+        claimed: fixtureClaimed,
+        category: "fixture",
+        allowed: allowedFixture,
+      },
+      {
+        item: "Unpaid BESCOM / Utility Dues",
+        claimed: utilityClaimed,
+        category: "utility",
+        allowed: allowedUtility,
+      },
+    ];
+
+    const generatedClaims = buildClaimsForCase(newId, deductions, true);
+    const totalAllowed = allowedPainting + allowedCleaning + allowedFixture + allowedUtility;
+
+    const newCase: DisputeCase = {
+      id: newId,
+      address: selectedAddress,
+      tenant: formTenantName.trim() || "Ananya Iyer",
+      tenantContact: formTenantContact.trim() || "+91 98860 12456",
+      landlord: formLandlordName.trim() || "K. V. Subhash",
+      landlordContact: formLandlordContact.trim() || "+91 94481 65432",
+      depositAmount: Number(formDepositAmount) || 200000,
+      monthlyRent: Number(formMonthlyRent) || 32000,
+      deductionsClaimed: deductions,
+      claims: generatedClaims,
+      auditState: "completed",
+      auditProgress: 100,
+      negRound: 1,
+      landlordOffer: totalAllowed,
+      tenantOffer: totalAllowed,
+      counterSlider: totalAllowed,
+      isSettled: false,
+      tenantSigned: false,
+      landlordSigned: false,
+      tenantSignTime: "",
+      landlordSignTime: "",
+    };
+
+    setCases((prev) => [newCase, ...prev]);
+    setActiveCaseId(newId);
+    setClaims(generatedClaims);
+    setAuditState("completed");
+    setAuditProgress(100);
     setNegRound(1);
-    setLandlordOffer(82000);
-    setTenantOffer(10000);
-    setCounterSlider(20000);
+    setLandlordOffer(totalAllowed);
+    setTenantOffer(totalAllowed);
+    setCounterSlider(totalAllowed);
     setIsSettled(false);
     setTenantSigned(false);
     setLandlordSigned(false);
     setTenantSignTime("");
     setLandlordSignTime("");
+    setIsNewCaseModalOpen(false);
+
+    setActiveView("dashboard");
+    setToastMessage(`Case ${newId} registered under Karnataka Rent Control Section 12`);
+    setTimeout(() => setToastMessage(null), 5000);
+
+    confetti({
+      particleCount: 160,
+      spread: 100,
+      origin: { y: 0.5 },
+      colors: ["#34D399", "#10B981", "#6EE7B7", "#FFD700"],
+    });
+
+    setTimeout(() => {
+      document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
+    }, 150);
+  };
+
+  /* ─── RESET DEMO ─── */
+  const handleReset = () => {
+    const initialClaims = activeCase.claims.map((c) => ({
+      ...c,
+      statuteApplied: false,
+    }));
+    const claimTotal = initialClaims.reduce((acc, c) => acc + c.landlordClaim, 0);
+    const statutoryTotal = initialClaims.reduce((acc, c) => acc + c.statutoryAllowed, 0);
+
+    setClaims(initialClaims);
+    setExpandedClaims({});
+    setShowCaseParticulars(false);
+    setAuditState("idle");
+    setAuditProgress(0);
+    setNegRound(1);
+    setLandlordOffer(claimTotal);
+    setTenantOffer(0);
+    setCounterSlider(statutoryTotal);
+    setIsSettled(false);
+    setTenantSigned(false);
+    setLandlordSigned(false);
+    setTenantSignTime("");
+    setLandlordSignTime("");
+    setActiveView("dashboard");
     setIsSidebarOpen(false);
-    scrollToSection("section-hero");
+
+    syncActiveCaseToCases({
+      auditState: "idle",
+      auditProgress: 0,
+      negRound: 1,
+      landlordOffer: claimTotal,
+      tenantOffer: 0,
+      counterSlider: statutoryTotal,
+      isSettled: false,
+      tenantSigned: false,
+      landlordSigned: false,
+      tenantSignTime: "",
+      landlordSignTime: "",
+      claims: initialClaims,
+    });
   };
 
   return (
@@ -457,118 +887,59 @@ export default function SettlrODRPage() {
         isDark ? "bg-[#121111] text-[#E0DDDD]" : "bg-[#F4F2F2] text-[#1E1B1B]"
       }`}
     >
-      {/* ═══════════════════════════════════════════════════════════
-          STICKY TOP HUD & NAVIGATION BAR
-      ═══════════════════════════════════════════════════════════ */}
-      <header
-        className={`sticky top-0 z-50 backdrop-blur-md border-b transition-colors ${
-          isDark
-            ? "bg-[#161414]/90 border-[#2D2929] shadow-lg shadow-black/40"
-            : "bg-white/90 border-[#E0DDDD] shadow-sm"
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
-          {/* Brand & Drawer Trigger */}
-          <div className="flex items-center gap-3">
+      {/* ─── FLOATING TOAST NOTIFICATION BANNER ─── */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-5 left-1/2 -translate-x-1/2 z-[120] px-5 py-3 rounded-2xl bg-emerald-500 text-slate-950 font-black text-xs shadow-2xl flex items-center gap-2.5 border border-emerald-300 shadow-emerald-950/50"
+          >
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-slate-950" />
+            <span>{toastMessage}</span>
             <button
-              onClick={() => setIsSidebarOpen(true)}
-              className={`p-2 rounded-xl border transition-all flex items-center justify-center ${
-                isDark
-                  ? "bg-[#222020] border-[#3A3535] text-[#E0DDDD] hover:bg-[#2D2A2A] hover:text-emerald-400"
-                  : "bg-[#EAE7E7] border-[#D6D1D1] text-[#2E2A2A] hover:bg-[#E0DDDD] hover:text-emerald-700"
-              }`}
-              title="Open Navigation Menu"
+              onClick={() => setToastMessage(null)}
+              className="ml-2 p-1 rounded-lg hover:bg-black/10 transition cursor-pointer"
             >
-              <Menu className="w-5 h-5" />
+              <X className="w-3.5 h-3.5" />
             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* ═══════════════════════════════════════════════════════════
+          FULL-SCREEN WELCOME HERO SECTION (LEGAL-TECH AESTHETIC)
+      ═══════════════════════════════════════════════════════════ */}
+      <section className="relative min-h-[92vh] sm:min-h-screen flex flex-col justify-between p-4 sm:p-8 overflow-hidden border-b border-white/10">
+        {/* Ambient Gradient Glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-emerald-500/15 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-10 right-10 w-80 h-80 bg-teal-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md">
-                <Gavel className="w-5 h-5 stroke-[2.2]" />
+        {/* Hero Top Bar */}
+        <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-4 pt-2 relative z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/30">
+              <Gavel className="w-5 h-5 stroke-[2.4]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={`font-black text-lg sm:text-xl tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                  Settlr ODR
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                  Karnataka GovTech
+                </span>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className={`font-black text-lg tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
-                    Settlr ODR
-                  </span>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                    Karnataka
-                  </span>
-                </div>
-                <div className="text-[11px] opacity-70 hidden sm:block">
-                  Bengaluru Tenancy Conciliation Portal • Sec 89 CPC
-                </div>
+              <div className="text-[11px] opacity-70 hidden sm:block">
+                Online Tenancy Dispute Conciliation Portal
               </div>
             </div>
           </div>
 
-          {/* Live Perspective Bar (Rohan vs Rao vs Conciliator) */}
-          <div
-            className={`flex items-center border p-1 rounded-xl shadow-inner ${
-              isDark ? "bg-[#1C1A1A] border-[#363232]" : "bg-[#EAE7E7] border-[#D6D1D1]"
-            }`}
-          >
-            <button
-              onClick={() => setPerspective("tenant")}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                perspective === "tenant"
-                  ? "bg-emerald-500 text-slate-950 font-black shadow-md"
-                  : isDark
-                  ? "text-[#A8A3A3] hover:text-white"
-                  : "text-[#5E5959] hover:text-black"
-              }`}
-            >
-              <User className="w-3.5 h-3.5" />
-              <span>🧑 Rohan <span className="hidden sm:inline">(Tenant)</span></span>
-            </button>
-            <button
-              onClick={() => setPerspective("landlord")}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                perspective === "landlord"
-                  ? "bg-[#E0DDDD] text-[#1A1818] font-black shadow-md"
-                  : isDark
-                  ? "text-[#A8A3A3] hover:text-white"
-                  : "text-[#5E5959] hover:text-black"
-              }`}
-            >
-              <Building2 className="w-3.5 h-3.5" />
-              <span>👨 Mr. Rao <span className="hidden sm:inline">(Landlord)</span></span>
-            </button>
-            <button
-              onClick={() => setPerspective("conciliator")}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                perspective === "conciliator"
-                  ? "bg-amber-400 text-slate-950 font-black shadow-md"
-                  : isDark
-                  ? "text-[#A8A3A3] hover:text-white"
-                  : "text-[#5E5959] hover:text-black"
-              }`}
-            >
-              <Scale className="w-3.5 h-3.5" />
-              <span>⚖️ Conciliator</span>
-            </button>
-          </div>
-
-          {/* Quick Triggers & Theme Switcher */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleTriggerAudit}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500 hover:text-slate-950 transition flex items-center gap-1.5 shadow-sm"
-              title="Auto-scroll to Section 2 and execute legal deduction slash"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Run Legal Audit</span>
-            </button>
-
-            <button
-              onClick={handleFastForward}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500 hover:text-slate-950 transition flex items-center gap-1.5 shadow-sm"
-              title="Fast-forward negotiation and unlock e-Stamp Settlement Deed"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Fast-Forward Deed</span>
-            </button>
-
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs font-bold opacity-60 hidden md:inline font-mono">
+              Sec 89 CPC • Model Tenancy Act
+            </span>
             <button
               onClick={() => setTheme(isDark ? "light" : "dark")}
               className={`p-2 rounded-xl border transition-all text-xs font-bold ${
@@ -582,49 +953,373 @@ export default function SettlrODRPage() {
             </button>
           </div>
         </div>
+
+        {/* Hero Center Content */}
+        <div className="max-w-5xl mx-auto w-full text-center my-auto py-10 sm:py-16 space-y-6 relative z-10">
+          {/* Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs sm:text-sm font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-950/20"
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+            Karnataka Rent Control Act Compliant • Bengaluru ODR Portal
+          </motion.div>
+
+          {/* Title */}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className={`text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.15] max-w-4xl mx-auto ${
+              isDark ? "text-white" : "text-[#1E1B1B]"
+            }`}
+          >
+            Fair, Fast & Algorithmic Security Deposit Resolution
+          </motion.h1>
+
+          {/* Subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-sm sm:text-lg opacity-80 max-w-3xl mx-auto leading-relaxed"
+          >
+            Resolve Bengaluru tenancy deposit disputes within minutes using statutory deductions under Karnataka Rent Control Section 12, automated wear-and-tear audits, and algorithmic 3-round negotiation.
+          </motion.p>
+
+          {/* Quick Stat Pills / Highlights */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 pt-2"
+          >
+            <div
+              className={`px-4 py-2 rounded-2xl border text-xs sm:text-sm font-black flex items-center gap-2 shadow-sm ${
+                isDark ? "bg-[#1C1A1A] border-[#363232] text-[#E0DDDD]" : "bg-white border-[#E0DDDD] text-[#1E1B1B]"
+              }`}
+            >
+              <span>⚡ Avg. Resolution: &lt; 48 Hours</span>
+            </div>
+            <div
+              className={`px-4 py-2 rounded-2xl border text-xs sm:text-sm font-black flex items-center gap-2 shadow-sm ${
+                isDark ? "bg-[#1C1A1A] border-[#363232] text-[#E0DDDD]" : "bg-white border-[#E0DDDD] text-[#1E1B1B]"
+              }`}
+            >
+              <span>⚖️ Karnataka Sec 12 Guardrails</span>
+            </div>
+            <div
+              className={`px-4 py-2 rounded-2xl border text-xs sm:text-sm font-black flex items-center gap-2 shadow-sm ${
+                isDark ? "bg-[#1C1A1A] border-[#363232] text-[#E0DDDD]" : "bg-white border-[#E0DDDD] text-[#1E1B1B]"
+              }`}
+            >
+              <span>📄 Legally Binding Settlement Deeds</span>
+            </div>
+          </motion.div>
+
+          {/* Primary Call-To-Action Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4"
+          >
+            <button
+              onClick={() => document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" })}
+              className="group px-7 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm sm:text-base transition-all shadow-xl shadow-emerald-500/25 flex items-center gap-2.5 animate-pulse hover:animate-none hover:scale-105 cursor-pointer"
+            >
+              <span>Launch Active Dispute (Case #{activeCase.id}) ↓</span>
+            </button>
+
+            <button
+              onClick={() => {
+                document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
+                setTimeout(() => runPitchDemo(), 600);
+              }}
+              className={`px-5 py-3.5 sm:py-4 rounded-2xl border text-xs sm:text-sm font-black transition flex items-center gap-2 cursor-pointer ${
+                isDark
+                  ? "bg-[#1C1A1A] border-[#3D3838] hover:bg-[#252222] text-[#E0DDDD]"
+                  : "bg-white border-[#D6D1D1] hover:bg-[#F4F2F2] text-[#1E1B1B] shadow-sm"
+              }`}
+            >
+              <Award className="w-4 h-4 text-emerald-400" />
+              <span>30-Sec Judge Pitch Demo</span>
+            </button>
+          </motion.div>
+        </div>
+
+        {/* Downward Scroll Indicator */}
+        <div className="text-center pb-2 relative z-10">
+          <button
+            onClick={() => document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" })}
+            className="inline-flex flex-col items-center gap-1 opacity-70 hover:opacity-100 transition text-xs font-bold cursor-pointer"
+          >
+            <span>Scroll to Dispute War Room</span>
+            <ChevronDown className="w-5 h-5 animate-bounce text-emerald-400" />
+          </button>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          TARGET CONTAINER: DISPUTE DASHBOARD
+      ═══════════════════════════════════════════════════════════ */}
+      <div id="dispute-dashboard" className="scroll-mt-0">
+        {/* STICKY TOP HUD & NAVIGATION BAR */}
+        <header
+          className={`sticky top-0 z-50 backdrop-blur-md border-b transition-colors ${
+            isDark
+              ? "bg-[#161414]/90 border-[#2D2929] shadow-lg shadow-black/40"
+              : "bg-white/90 border-[#E0DDDD] shadow-sm"
+          }`}
+        >
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-3">
+          {/* Brand & Drawer Trigger */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className={`p-1.5 rounded-xl border transition-all flex items-center justify-center ${
+                isDark
+                  ? "bg-[#222020] border-[#3A3535] text-[#E0DDDD] hover:bg-[#2D2A2A] hover:text-emerald-400"
+                  : "bg-[#EAE7E7] border-[#D6D1D1] text-[#2E2A2A] hover:bg-[#E0DDDD] hover:text-emerald-700"
+              }`}
+              title="Open Navigation Menu"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md">
+                <Gavel className="w-4 h-4 stroke-[2.4]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className={`font-black text-lg tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                    Settlr ODR
+                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                    Karnataka
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Case Switcher Pill */}
+            <div className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-bold ${
+              isDark ? "bg-[#1C1A1A] border-[#363232]" : "bg-white border-[#D6D1D1] shadow-sm"
+            }`}>
+              <Layers className="w-3 h-3 text-emerald-400 shrink-0" />
+              <select
+                value={activeCaseId}
+                onChange={(e) => switchCase(e.target.value)}
+                className="bg-transparent text-emerald-400 font-black cursor-pointer focus:outline-none text-xs"
+              >
+                {cases.map((c) => (
+                  <option key={c.id} value={c.id} className={isDark ? "bg-[#1C1A1A] text-white" : "bg-white text-black"}>
+                    #{c.id} • {c.address.split(",")[0]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Live Perspective Bar */}
+          <div
+            className={`flex items-center border p-1 rounded-xl shadow-inner ${
+              isDark ? "bg-[#1C1A1A] border-[#363232]" : "bg-[#EAE7E7] border-[#D6D1D1]"
+            }`}
+          >
+            <button
+              onClick={() => setPerspective("tenant")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                perspective === "tenant"
+                  ? "bg-emerald-500 text-slate-950 shadow-md"
+                  : isDark
+                  ? "text-[#A8A3A3] hover:text-white"
+                  : "text-[#5E5959] hover:text-black"
+              }`}
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>🧑 {activeCase.tenant.split(" ")[0]} <span className="hidden md:inline">(Tenant)</span></span>
+            </button>
+            <button
+              onClick={() => setPerspective("landlord")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                perspective === "landlord"
+                  ? "bg-[#E0DDDD] text-[#1A1818] shadow-md"
+                  : isDark
+                  ? "text-[#A8A3A3] hover:text-white"
+                  : "text-[#5E5959] hover:text-black"
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>👨 {activeCase.landlord.split(" ")[0]} <span className="hidden md:inline">(Landlord)</span></span>
+            </button>
+            <button
+              onClick={() => setPerspective("conciliator")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                perspective === "conciliator"
+                  ? "bg-amber-400 text-slate-950 shadow-md"
+                  : isDark
+                  ? "text-[#A8A3A3] hover:text-white"
+                  : "text-[#5E5959] hover:text-black"
+              }`}
+            >
+              <Scale className="w-3.5 h-3.5" />
+              <span>⚖️ Conciliator</span>
+            </button>
+          </div>
+
+          {/* Quick Triggers, New Dispute & Theme Switcher */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openIntakeView}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition flex items-center gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
+              title="File New Tenancy Dispute (Form 1-A Intake)"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="hidden sm:inline">File Dispute</span>
+            </button>
+
+            <button
+              onClick={runPitchDemo}
+              disabled={isPitching}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-md ${
+                isPitching
+                  ? "bg-amber-400 text-slate-950 animate-pulse"
+                  : "bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-emerald-500/20"
+              }`}
+              title="Automated 1-Click Live Pitch Walkthrough for Judges"
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>{isPitching ? "Pitching..." : "1-Click Pitch"}</span>
+            </button>
+
+            <button
+              onClick={handleTriggerAudit}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500 hover:text-slate-950 transition flex items-center gap-1 shadow-sm"
+              title="Open Section 2 Legal Audit and run compliance check"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">Legal Audit</span>
+            </button>
+
+            <button
+              onClick={handleFastForward}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500 hover:text-slate-950 transition flex items-center gap-1 shadow-sm"
+              title="Fast-forward negotiation and unlock e-Stamp Settlement Deed"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">Fast Deed</span>
+            </button>
+
+            <button
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+              className={`p-1.5 rounded-xl border transition-all text-xs font-bold ${
+                isDark
+                  ? "bg-[#222020] border-[#3A3535] text-emerald-400 hover:bg-[#2B2727]"
+                  : "bg-[#EAE7E7] border-[#D6D1D1] text-emerald-700 hover:bg-[#E0DDDD]"
+              }`}
+              title="Toggle Light/Dark Theme"
+            >
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* ─── PERSPECTIVE CONTEXTUAL HINT ─── */}
+        <div
+          className={`px-4 py-1.5 text-xs font-semibold border-t transition-colors ${
+            perspective === "tenant"
+              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+              : perspective === "landlord"
+              ? isDark
+                ? "bg-[#252222] text-[#E0DDDD] border-[#3D3838]"
+                : "bg-[#EAE7E7] text-[#2E2A2A] border-[#D6D1D1]"
+              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+          }`}
+        >
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Info className="w-3.5 h-3.5 shrink-0" />
+              {perspective === "tenant" && (
+                <span>
+                  <strong>Tenant Perspective ({activeCase.tenant}):</strong> Monthly rent ₹{activeCase.monthlyRent.toLocaleString("en-IN")}. Disputing unlawful deductions under Sec 12 Karnataka Rent Act.
+                </span>
+              )}
+              {perspective === "landlord" && (
+                <span>
+                  <strong>Landlord Perspective ({activeCase.landlord}):</strong> Holding ₹{totalDepositEscrow.toLocaleString("en-IN")} deposit. Statutory audit caps legal claim to avoid court penalties.
+                </span>
+              )}
+              {perspective === "conciliator" && (
+                <span>
+                  <strong>Neutral Conciliator (Sec 89 CPC):</strong> Judicial out-of-court formula. Statutory consensus point is ₹{statutoryCap.toLocaleString("en-IN")} cap with ₹{netRefund.toLocaleString("en-IN")} returned to tenant.
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] uppercase font-black opacity-80 shrink-0 hidden sm:inline">
+              Active: {perspective.toUpperCase()}
+            </span>
+          </div>
+        </div>
+
+        {/* ─── PRIMARY VIEW SELECTOR BAR (SYNCED WITH HAMBURGER) ─── */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2">
+          <div
+            className={`flex items-center gap-1.5 p-1 rounded-2xl border overflow-x-auto shadow-sm ${
+              isDark ? "bg-[#181616] border-[#332F2F]" : "bg-white border-[#E0DDDD]"
+            }`}
+          >
+            {[
+              { id: "dashboard" as const, label: "Case Dashboard", icon: FileText, badge: `${claims.length} Heads` },
+              { id: "intake" as const, label: "Form 1-A (Intake)", icon: PlusCircle, badge: "New Notice" },
+              { id: "rules" as const, label: "Karnataka Rule 12 (Statutes)", icon: Scale, badge: "Sec 12" },
+              { id: "negotiation" as const, label: "3-Round Negotiation", icon: Handshake, badge: `Round ${negRound}` },
+              { id: "settlement" as const, label: "Settlement Deed", icon: Stamp, badge: isSettled ? "Executed" : "e-Stamp" },
+            ].map((tab) => {
+              const TabIcon = tab.icon;
+              const isActive = activeView === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveView(tab.id);
+                    document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className={`flex-1 min-w-[145px] py-1.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                    isActive
+                      ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
+                      : isDark
+                      ? "hover:bg-[#252222] text-[#A8A3A3] hover:text-white"
+                      : "hover:bg-[#F4F2F2] text-[#5E5959] hover:text-black"
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5 truncate">
+                    <TabIcon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{tab.label}</span>
+                  </span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
+                      isActive
+                        ? "bg-slate-950/20 text-slate-950"
+                        : isDark
+                        ? "bg-[#252222] text-emerald-400"
+                        : "bg-[#EAE7E7] text-emerald-700"
+                    }`}
+                  >
+                    {tab.badge}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </header>
 
       {/* ═══════════════════════════════════════════════════════════
-          PERSPECTIVE CONTEXTUAL HINT BANNER
-      ═══════════════════════════════════════════════════════════ */}
-      <div
-        className={`px-4 py-2 text-xs font-semibold border-b transition-colors ${
-          perspective === "tenant"
-            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-            : perspective === "landlord"
-            ? isDark
-              ? "bg-[#252222] text-[#E0DDDD] border-[#3D3838]"
-              : "bg-[#EAE7E7] text-[#2E2A2A] border-[#D6D1D1]"
-            : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-        }`}
-      >
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Info className="w-4 h-4 shrink-0" />
-            {perspective === "tenant" && (
-              <span>
-                <strong>Tenant View (Rohan Sharma):</strong> You vacated Flat 402 after 36 months. You are disputing ₹72,000 of ₹82,000 claimed deductions. Under Sec 12 of Karnataka Rent Act, repainting cannot be charged after 12 months.
-              </span>
-            )}
-            {perspective === "landlord" && (
-              <span>
-                <strong>Landlord View (K. Raghavendra Rao):</strong> You hold ₹2,00,000 security deposit. You claimed ₹82,000 to restore painting, geyser, and cleaning. The statutory compliance engine checks which claims hold in Bengaluru Small Causes Court.
-              </span>
-            )}
-            {perspective === "conciliator" && (
-              <span>
-                <strong>Neutral Conciliator View (Sec 89 CPC):</strong> Facilitating an amicable out-of-court settlement. Statutory audit caps legal deductions at ₹20,000, returning ₹1,80,000 net deposit to tenant.
-              </span>
-            )}
-          </div>
-          <span className="text-[10px] uppercase font-bold opacity-80 shrink-0 hidden sm:inline">
-            Active Persona: {perspective.toUpperCase()}
-          </span>
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════
-          SLIDE-OVER SIDEBAR DRAWER
+          SLIDE-OVER SIDEBAR DRAWER (WIRED TO activeView)
       ═══════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -641,75 +1336,153 @@ export default function SettlrODRPage() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className={`fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-50 flex flex-col justify-between border-r shadow-2xl p-5 overflow-y-auto ${
+              className={`fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-50 flex flex-col justify-between border-r shadow-2xl p-4 overflow-y-auto ${
                 isDark
                   ? "bg-[#1A1818] border-[#363232] text-[#E0DDDD]"
                   : "bg-white border-[#E0DDDD] text-[#1E1B1B]"
               }`}
             >
-              <div className="space-y-6">
-                <div className={`flex items-center justify-between border-b pb-4 ${isDark ? "border-[#363232]" : "border-[#E0DDDD]"}`}>
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold">
-                      <Gavel className="w-4 h-4" />
+              <div className="space-y-4">
+                <div className={`flex items-center justify-between border-b pb-3 ${isDark ? "border-[#363232]" : "border-[#E0DDDD]"}`}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold">
+                      <Gavel className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <div className="text-[10px] font-bold uppercase text-emerald-400">Case Dossier</div>
-                      <div className="font-extrabold text-sm">Dispute #BLR-2026-8941</div>
+                      <div className="text-[10px] font-black uppercase text-emerald-400">Case Dossier</div>
+                      <div className="font-extrabold text-sm">Dispute #{activeCase.id}</div>
                     </div>
                   </div>
                   <button
                     onClick={() => setIsSidebarOpen(false)}
-                    className="p-1 rounded-lg hover:bg-white/10 transition"
+                    className="p-1 rounded-lg hover:bg-white/10 transition cursor-pointer"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* Case Info Card */}
-                <div className={`p-3.5 rounded-xl border ${isDark ? "bg-[#222020] border-[#3A3535]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                <div className={`p-3 rounded-xl border ${isDark ? "bg-[#222020] border-[#3A3535]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
                   <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 mb-1">
                     <MapPin className="w-3.5 h-3.5" />
-                    Prestige Shantiniketan, Whitefield
+                    {activeCase.address.split(",")[0]}
                   </div>
                   <p className="text-[11px] opacity-70">
-                    Flat 402, Tower 3 • 36 Months Tenancy (2023–2026)
+                    {activeCase.address}
                   </p>
                 </div>
 
-                {/* Fast Nav Anchors */}
-                <div className="space-y-1.5">
-                  <div className="text-[11px] font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-emerald-400" />
-                    Interactive Flow
+                {/* File New Dispute Trigger in Drawer */}
+                <button
+                  onClick={openIntakeView}
+                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-950/40 hover:opacity-95 transition cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                  <span>File New Tenancy Dispute</span>
+                </button>
+
+                {/* Case Switcher in Drawer (if multiple cases) */}
+                {cases.length > 1 && (
+                  <div className={`p-2.5 rounded-xl border space-y-1.5 ${isDark ? "bg-[#1E1C1C] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                    <div className="text-[10px] font-bold uppercase tracking-wider opacity-60 flex items-center gap-1">
+                      <Layers className="w-3 h-3 text-emerald-400" />
+                      Registered Disputes ({cases.length})
+                    </div>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {cases.map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => {
+                            switchCase(c.id);
+                            setIsSidebarOpen(false);
+                          }}
+                          className={`w-full text-left p-1.5 rounded-lg text-xs font-bold border transition flex items-center justify-between cursor-pointer ${
+                            c.id === activeCaseId
+                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                              : isDark
+                              ? "bg-[#161414] border-transparent text-[#A8A3A3] hover:text-white"
+                              : "bg-white border-[#E0DDDD] text-[#5E5959] hover:text-black"
+                          }`}
+                        >
+                          <span className="truncate">#{c.id} • {c.address.split(",")[0]}</span>
+                          {c.id === activeCaseId && <Check className="w-3 h-3 text-emerald-400 shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* DISTINCT HIGH-VALUE NAVIGATION VIEWS */}
+                <div className="space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider opacity-60 flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-emerald-400" />
+                    Select Active Portal View
                   </div>
                   {[
-                    { id: "section-hero", label: "Dispute Summary & Escrow" },
-                    { id: "section-claims", label: "1. Claims & Evidence Locker" },
-                    { id: "section-statutory-audit", label: "2. Karnataka Statutory Audit" },
-                    { id: "section-negotiation", label: "3. 3-Round Negotiation Room" },
-                    { id: "section-settlement-deed", label: "4. Executed Settlement Deed" },
-                  ].map((step, idx) => (
-                    <button
-                      key={step.id}
-                      onClick={() => {
-                        setIsSidebarOpen(false);
-                        scrollToSection(step.id);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition ${
-                        isDark ? "hover:bg-[#252222] text-[#C8C4C4]" : "hover:bg-[#EAE7E7] text-[#4F4B4B]"
-                      }`}
-                    >
-                      <span>{step.label}</span>
-                      <span className="text-[10px] text-emerald-400 font-mono">0{idx + 1}</span>
-                    </button>
-                  ))}
+                    {
+                      id: "dashboard" as const,
+                      label: "Case Dashboard",
+                      icon: FileText,
+                      desc: "Intake, dispute summary & deduction cards",
+                    },
+                    {
+                      id: "intake" as const,
+                      label: "Form 1-A (Dispute Intake)",
+                      icon: PlusCircle,
+                      desc: "Prescribed filing under Karnataka Rent Control",
+                    },
+                    {
+                      id: "rules" as const,
+                      label: "Karnataka Rule 12 (Statutes)",
+                      icon: Scale,
+                      desc: "0% wear-and-tear painting & 10% fixture depreciation",
+                    },
+                    {
+                      id: "negotiation" as const,
+                      label: "3-Round Negotiation",
+                      icon: Handshake,
+                      desc: "Interactive offer/counter-offer gap tracker",
+                    },
+                    {
+                      id: "settlement" as const,
+                      label: "Settlement Deed",
+                      icon: Stamp,
+                      desc: "Formal stamp-duty settlement agreement",
+                    },
+                  ].map((viewItem) => {
+                    const ViewIcon = viewItem.icon;
+                    const isActive = activeView === viewItem.id;
+                    return (
+                      <button
+                        key={viewItem.id}
+                        onClick={() => {
+                          setActiveView(viewItem.id);
+                          setIsSidebarOpen(false);
+                          document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className={`w-full text-left p-2.5 rounded-xl border text-xs font-semibold transition ${
+                          isActive
+                            ? isDark
+                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-sm"
+                              : "bg-emerald-50 text-emerald-800 border-emerald-300 shadow-sm"
+                            : isDark
+                            ? "hover:bg-[#252222] text-[#C8C4C4] border-transparent"
+                            : "hover:bg-[#EAE7E7] text-[#4F4B4B] border-transparent"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 font-bold">
+                          <ViewIcon className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{viewItem.label}</span>
+                        </div>
+                        <div className="text-[10px] opacity-60 pl-5.5 mt-0.5">{viewItem.desc}</div>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Demo Scenario Presets */}
-                <div className={`pt-4 border-t space-y-2 ${isDark ? "border-[#363232]" : "border-[#E0DDDD]"}`}>
-                  <div className="text-[11px] font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <div className={`pt-3 border-t space-y-2 ${isDark ? "border-[#363232]" : "border-[#E0DDDD]"}`}>
+                  <div className="text-[10px] font-bold uppercase tracking-wider opacity-60 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-emerald-400" />
                     Demo Presets
                   </div>
                   <button
@@ -717,17 +1490,14 @@ export default function SettlrODRPage() {
                       handleReset();
                       setIsSidebarOpen(false);
                     }}
-                    className={`w-full text-left p-3 rounded-xl border text-xs font-semibold transition ${
+                    className={`w-full text-left p-2.5 rounded-xl border text-xs font-semibold transition ${
                       isDark ? "bg-[#201E1E] border-[#363232] hover:bg-[#282424]" : "bg-[#F9F8F8] border-[#D6D1D1] hover:bg-[#EAE7E7]"
                     }`}
                   >
                     <div className="font-bold text-rose-400 flex items-center justify-between">
                       <span>Predatory ₹82k Claim</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-400">Default</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 font-bold">Default</span>
                     </div>
-                    <p className="text-[11px] opacity-70 mt-1">
-                      Full repainting, geyser replacement, and notice penalty claims active.
-                    </p>
                   </button>
 
                   <button
@@ -735,26 +1505,23 @@ export default function SettlrODRPage() {
                       handleFastForward();
                       setIsSidebarOpen(false);
                     }}
-                    className={`w-full text-left p-3 rounded-xl border text-xs font-semibold transition ${
+                    className={`w-full text-left p-2.5 rounded-xl border text-xs font-semibold transition ${
                       isDark ? "bg-[#201E1E] border-[#363232] hover:bg-[#282424]" : "bg-[#F9F8F8] border-[#D6D1D1] hover:bg-[#EAE7E7]"
                     }`}
                   >
                     <div className="font-bold text-emerald-400 flex items-center justify-between">
                       <span>Converged ₹20k Accord</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">Solved</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">Solved</span>
                     </div>
-                    <p className="text-[11px] opacity-70 mt-1">
-                      Statutory caps applied, gap resolved, e-Stamp deed unlocked.
-                    </p>
                   </button>
                 </div>
               </div>
 
               {/* Drawer Footer Reset */}
-              <div className={`pt-4 border-t ${isDark ? "border-[#363232]" : "border-[#E0DDDD]"}`}>
+              <div className={`pt-3 border-t ${isDark ? "border-[#363232]" : "border-[#E0DDDD]"}`}>
                 <button
                   onClick={handleReset}
-                  className={`w-full py-2.5 px-3 border font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition ${
+                  className={`w-full py-2 px-3 border font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition ${
                     isDark
                       ? "bg-[#222020] hover:bg-[#2D2A2A] border-[#3D3838] text-[#E0DDDD]"
                       : "bg-white hover:bg-[#ECE9E9] border-[#D6D1D1] text-[#1E1B1B] shadow-sm"
@@ -790,7 +1557,7 @@ export default function SettlrODRPage() {
                 isDark ? "bg-[#1A1818] border-[#363232]" : "bg-white border-[#E0DDDD]"
               }`}
             >
-              <div className={`flex items-center justify-between p-4 border-b ${isDark ? "border-[#363232]" : "border-[#E0DDDD]"}`}>
+              <div className={`flex items-center justify-between p-3.5 border-b ${isDark ? "border-[#363232]" : "border-[#E0DDDD]"}`}>
                 <div className="flex items-center gap-2">
                   <FileImage className="w-4 h-4 text-emerald-400" />
                   <span className="font-bold text-sm">{previewEvidence.name}</span>
@@ -799,17 +1566,17 @@ export default function SettlrODRPage() {
                   onClick={() => setPreviewEvidence(null)}
                   className="p-1 rounded-lg hover:bg-white/10 transition"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="relative bg-black max-h-[55vh] flex items-center justify-center">
+              <div className="relative bg-black max-h-[50vh] flex items-center justify-center">
                 <img
                   src={previewEvidence.imageUrl}
                   alt={previewEvidence.name}
-                  className="w-full h-auto max-h-[55vh] object-contain"
+                  className="w-full h-auto max-h-[50vh] object-contain"
                 />
               </div>
-              <div className={`p-4 space-y-2 text-xs ${isDark ? "bg-[#141313]" : "bg-[#F9F8F8]"}`}>
+              <div className={`p-3.5 space-y-2 text-xs ${isDark ? "bg-[#141313]" : "bg-[#F9F8F8]"}`}>
                 <div className="flex flex-wrap gap-2 text-[11px]">
                   <span className="px-2 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                     {previewEvidence.type}
@@ -832,954 +1599,1592 @@ export default function SettlrODRPage() {
       </AnimatePresence>
 
       {/* ═══════════════════════════════════════════════════════════
-          MAIN SCROLL CONTAINER
+          MAIN CONTENT AREA (CONDITIONALLY RENDERS activeView)
       ═══════════════════════════════════════════════════════════ */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-12">
-        {/* ─────────────────────────────────────────────────────────
-            SECTION 0: HERO / DISPUTE SUMMARY
-        ───────────────────────────────────────────────────────── */}
-        <motion.section
-          id="section-hero"
-          {...scrollFadeVariant}
-          className={`rounded-3xl p-6 sm:p-8 border shadow-xl relative overflow-hidden transition-colors ${
-            isDark
-              ? "bg-gradient-to-br from-[#1C1A1A] via-[#161414] to-[#1E1C1C] border-[#363232]"
-              : "bg-gradient-to-br from-white via-[#F9F8F8] to-[#ECE9E9] border-[#E0DDDD]"
-          }`}
-        >
-          {/* Subtle Ambient Glow */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  Active Conciliation Phase • Round {negRound} of 3
-                </span>
-                <span className="text-xs font-bold opacity-60">
-                  Dispute Ref: #BLR-2026-8941
-                </span>
-              </div>
-
-              <h2 className={`text-2xl sm:text-3xl font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
-                Flat 402, Tower 3, Prestige Shantiniketan
-              </h2>
-              <p className="text-xs sm:text-sm opacity-70 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
-                Whitefield Main Road, Bengaluru, Karnataka 560066 • Tenancy: 36 Months (Mar 2023 – Mar 2026)
-              </p>
-
-              {/* Parties summary */}
-              <div className="flex flex-wrap gap-4 pt-1 text-xs">
-                <div>
-                  <span className="opacity-60">Tenant: </span>
-                  <span className="font-bold text-emerald-400">Rohan Sharma</span>
-                </div>
-                <div className="opacity-30">|</div>
-                <div>
-                  <span className="opacity-60">Landlord: </span>
-                  <span className="font-bold">K. Raghavendra Rao</span>
-                </div>
-                <div className="opacity-30">|</div>
-                <div>
-                  <span className="opacity-60">Monthly Rent: </span>
-                  <span className="font-bold">₹20,000</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Summary Pill Stats */}
-            <div className="flex flex-wrap sm:flex-nowrap gap-3 shrink-0">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-6 space-y-6">
+        <AnimatePresence mode="wait">
+          {/* ─────────────────────────────────────────────────────────
+              VIEW 1: CASE DASHBOARD (INTAKE & DEDUCTIONS BREAKDOWN)
+          ───────────────────────────────────────────────────────── */}
+          {activeView === "dashboard" && (
+            <motion.div
+              key="view-dashboard"
+              {...scrollFadeVariant}
+              className="space-y-6"
+            >
+              {/* Hero HUD */}
               <div
-                className={`p-4 rounded-2xl border min-w-[130px] sm:min-w-[150px] ${
-                  isDark ? "bg-[#141313] border-[#332F2F]" : "bg-white border-[#E0DDDD] shadow-sm"
+                className={`rounded-3xl p-5 sm:p-6 border shadow-xl relative overflow-hidden transition-colors ${
+                  isDark
+                    ? "bg-gradient-to-br from-[#1C1A1A] via-[#161414] to-[#1E1C1C] border-[#363232]"
+                    : "bg-gradient-to-br from-white via-[#F9F8F8] to-[#ECE9E9] border-[#E0DDDD]"
                 }`}
               >
-                <div className="text-[10px] font-bold uppercase tracking-wider opacity-60 flex items-center gap-1">
-                  <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                  Escrow Deposit
-                </div>
-                <div className="text-xl sm:text-2xl font-black mt-1 text-emerald-400">
-                  ₹{totalDepositEscrow.toLocaleString("en-IN")}
-                </div>
-                <div className="text-[10px] opacity-60 mt-0.5">10 Months Customary</div>
-              </div>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-3 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        Dispute Intake Dossier
+                      </span>
+                      <span className="text-xs font-bold opacity-60">
+                        Dispute Ref: #{activeCase.id}
+                      </span>
 
-              <div
-                className={`p-4 rounded-2xl border min-w-[130px] sm:min-w-[150px] ${
-                  isDark ? "bg-[#141313] border-[#332F2F]" : "bg-white border-[#E0DDDD] shadow-sm"
-                }`}
-              >
-                <div className="text-[10px] font-bold uppercase tracking-wider opacity-60 flex items-center gap-1">
-                  <TrendingDown className="w-3.5 h-3.5 text-rose-400" />
-                  Landlord Claim
-                </div>
-                <div className="text-xl sm:text-2xl font-black mt-1 text-rose-400">
-                  ₹{initialLandlordTotal.toLocaleString("en-IN")}
-                </div>
-                <div className="text-[10px] opacity-60 mt-0.5">5 Line-Item Deductions</div>
-              </div>
-
-              <div
-                className={`p-4 rounded-2xl border min-w-[130px] sm:min-w-[150px] ${
-                  isDark ? "bg-[#141313] border-[#332F2F]" : "bg-white border-[#E0DDDD] shadow-sm"
-                }`}
-              >
-                <div className="text-[10px] font-bold uppercase tracking-wider opacity-60 flex items-center gap-1">
-                  <Scale className="w-3.5 h-3.5 text-amber-400" />
-                  Contested Delta
-                </div>
-                <div className="text-xl sm:text-2xl font-black mt-1 text-amber-400">
-                  ₹{(initialLandlordTotal - tenantCurrentOffers).toLocaleString("en-IN")}
-                </div>
-                <div className="text-[10px] opacity-60 mt-0.5">Active Dispute Gap</div>
-              </div>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* ─────────────────────────────────────────────────────────
-            SECTION 1: ITEMIZED CLAIMS & EVIDENCE LOCKER
-        ───────────────────────────────────────────────────────── */}
-        <motion.section
-          id="section-claims"
-          {...scrollFadeVariant}
-          className="space-y-4"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <div className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                <FileText className="w-4 h-4" /> Section 1: Intake & Claims
-              </div>
-              <h3 className={`text-xl font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
-                Itemized Claims & Evidence Locker
-              </h3>
-            </div>
-            <div className="text-xs opacity-70">
-              Interactive review: Toggle dispute state or expand verified evidence
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            {claims.map((claim, index) => {
-              const isExpanded = expandedAccordion === claim.id;
-
-              return (
-                <motion.div
-                  key={claim.id}
-                  whileHover={{ scale: 1.01 }}
-                  transition={{ duration: 0.2 }}
-                  className={`border rounded-2xl p-5 transition-all shadow-md ${
-                    claim.statuteApplied && claim.statutoryAllowed === 0
-                      ? isDark
-                        ? "bg-[#161B18] border-emerald-500/40"
-                        : "bg-emerald-50/60 border-emerald-400"
-                      : isDark
-                      ? "bg-[#1C1A1A] border-[#363232] hover:border-[#4D4747]"
-                      : "bg-white border-[#E0DDDD] hover:border-[#C8C4C4]"
-                  }`}
-                >
-                  {/* Card Main Row */}
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div
-                        className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shrink-0 border ${
-                          isDark
-                            ? "bg-[#252222] border-[#3D3838] text-[#E0DDDD]"
-                            : "bg-[#EAE7E7] border-[#D6D1D1] text-[#1E1B1B]"
-                        }`}
-                      >
-                        0{index + 1}
+                      {/* Case Switcher Dropdown */}
+                      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-bold ${
+                        isDark ? "bg-[#141212] border-[#332F2F]" : "bg-white border-[#D6D1D1] shadow-sm"
+                      }`}>
+                        <Layers className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <span className="text-[10px] uppercase opacity-60">Case:</span>
+                        <select
+                          value={activeCaseId}
+                          onChange={(e) => switchCase(e.target.value)}
+                          className="bg-transparent text-emerald-400 font-black cursor-pointer focus:outline-none text-xs"
+                        >
+                          {cases.map((c) => (
+                            <option key={c.id} value={c.id} className={isDark ? "bg-[#1C1A1A] text-white" : "bg-white text-black"}>
+                              #{c.id} • {c.address.split(",")[0]} ({c.tenant})
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h4 className={`font-bold text-base ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
-                            {claim.title}
-                          </h4>
-                          <span
-                            className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase border ${
-                              claim.isDisputedByTenant
-                                ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                                : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                            }`}
-                          >
-                            {claim.isDisputedByTenant ? "Disputed" : "Accepted"}
-                          </span>
-                        </div>
-                        <p className="text-xs opacity-70">{claim.subtitle}</p>
-                      </div>
-                    </div>
-
-                    {/* Financial Figures Comparison */}
-                    <div className="flex flex-wrap items-center gap-4 shrink-0">
-                      <div className="text-right">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400">
-                          Landlord Claim
-                        </div>
-                        <div className={`text-base font-extrabold ${claim.statuteApplied && claim.statutoryAllowed < claim.landlordClaim ? "line-through text-rose-400/60" : "text-rose-400"}`}>
-                          ₹{claim.landlordClaim.toLocaleString("en-IN")}
-                        </div>
-                      </div>
-
-                      <ArrowLeftRight className="w-4 h-4 opacity-40 shrink-0" />
-
-                      <div className="text-right">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                          Tenant Offer
-                        </div>
-                        <div className="text-base font-extrabold text-emerald-400">
-                          ₹{claim.tenantCounter.toLocaleString("en-IN")}
-                        </div>
-                      </div>
-
-                      {/* Dispute Toggle Button */}
+                      {/* File New Dispute Button */}
                       <button
-                        onClick={() => toggleClaimDispute(claim.id)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                          claim.isDisputedByTenant
-                            ? "bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30"
-                            : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                        }`}
+                        onClick={openIntakeView}
+                        className="px-2.5 py-1 rounded-xl text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500 hover:text-slate-950 transition flex items-center gap-1 shadow-sm cursor-pointer"
                       >
-                        {claim.isDisputedByTenant ? "Contesting Claim" : "Claim Accepted"}
-                      </button>
-
-                      {/* Accordion Toggle */}
-                      <button
-                        onClick={() => setExpandedAccordion(isExpanded ? null : claim.id)}
-                        className={`p-2 rounded-xl border transition ${
-                          isDark ? "bg-[#252222] border-[#3D3838] hover:bg-[#302C2C]" : "bg-[#EAE7E7] border-[#D6D1D1] hover:bg-[#E0DDDD]"
-                        }`}
-                        title="Expand evidence and arguments"
-                      >
-                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>+ File New Dispute</span>
                       </button>
                     </div>
+
+                    <h2 className={`text-xl sm:text-2xl lg:text-3xl font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                      {activeCase.address.split(",")[0]}
+                    </h2>
+                    <p className="text-xs opacity-70 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      {activeCase.address}
+                    </p>
+
+                    {/* Collapsible Particulars Toggle */}
+                    <button
+                      onClick={() => setShowCaseParticulars(!showCaseParticulars)}
+                      className="text-xs font-bold text-emerald-400 hover:underline flex items-center gap-1 pt-1 cursor-pointer"
+                    >
+                      <span>{showCaseParticulars ? "Hide Lease Particulars" : "View Lease Particulars & Parties"}</span>
+                      {showCaseParticulars ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
 
-                  {/* Expanded Accordion Body */}
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className={`mt-4 pt-4 border-t space-y-4 ${isDark ? "border-[#332F2F]" : "border-[#EAE7E7]"}`}
+                  {/* High-Impact Stat Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
+                    <div className={`p-3 rounded-2xl border min-w-[120px] ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-white border-[#E0DDDD] shadow-sm"}`}>
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider opacity-60 flex items-center gap-1">
+                        <Shield className="w-3 h-3 text-emerald-400" />
+                        Escrow Deposit
+                      </div>
+                      <div className="text-xl sm:text-2xl font-black mt-0.5 text-emerald-400">
+                        ₹{totalDepositEscrow.toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-[10px] opacity-60">Deposit Held</div>
+                    </div>
+
+                    <div className={`p-3 rounded-2xl border min-w-[120px] ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-white border-[#E0DDDD] shadow-sm"}`}>
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider opacity-60 flex items-center gap-1">
+                        <TrendingDown className="w-3 h-3 text-rose-400" />
+                        Landlord Claim
+                      </div>
+                      <div className="text-xl sm:text-2xl font-black mt-0.5 text-rose-400">
+                        ₹{initialLandlordTotal.toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-[10px] opacity-60">{claims.length} Deductions</div>
+                    </div>
+
+                    <div className={`p-3 rounded-2xl border min-w-[120px] ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-white border-[#E0DDDD] shadow-sm"}`}>
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider opacity-60 flex items-center gap-1">
+                        <Scale className="w-3 h-3 text-emerald-400" />
+                        Statutory Cap
+                      </div>
+                      <div className="text-xl sm:text-2xl font-black mt-0.5 text-emerald-400">
+                        ₹{statutoryCap.toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-[10px] text-emerald-400 font-bold">
+                        ₹{(initialLandlordTotal - statutoryCap).toLocaleString("en-IN")} Disallowed
+                      </div>
+                    </div>
+
+                    <div className={`p-3 rounded-2xl border min-w-[120px] ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-white border-[#E0DDDD] shadow-sm"}`}>
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider opacity-60 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        Net Refund
+                      </div>
+                      <div className="text-xl sm:text-2xl font-black mt-0.5 text-emerald-400">
+                        ₹{netRefund.toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-[10px] opacity-60">Instant Disbursal</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Collapsible Particulars Card */}
+                <AnimatePresence>
+                  {showCaseParticulars && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className={`mt-4 pt-4 border-t grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs ${
+                        isDark ? "border-[#332F2F]" : "border-[#EAE7E7]"
+                      }`}
+                    >
+                      <div className={`p-3 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-white border-[#E0DDDD]"}`}>
+                        <span className="font-bold text-emerald-400 block mb-1">Tenant Profile</span>
+                        <div><strong>{activeCase.tenant}</strong> ({activeCase.tenantContact})</div>
+                        <div className="opacity-70 text-[11px]">Aadhaar Verified • Bangalore Resident</div>
+                      </div>
+                      <div className={`p-3 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-white border-[#E0DDDD]"}`}>
+                        <span className="font-bold text-emerald-400 block mb-1">Landlord Profile</span>
+                        <div><strong>{activeCase.landlord}</strong> ({activeCase.landlordContact})</div>
+                        <div className="opacity-70 text-[11px]">PAN Verified • Property Owner</div>
+                      </div>
+                      <div className={`p-3 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-white border-[#E0DDDD]"}`}>
+                        <span className="font-bold text-emerald-400 block mb-1">Tenancy Terms</span>
+                        <div>Monthly Rent: <strong>₹{activeCase.monthlyRent.toLocaleString("en-IN")}</strong> • Security Deposit: <strong>₹{totalDepositEscrow.toLocaleString("en-IN")}</strong></div>
+                        <div className="opacity-70 text-[11px]">Handover Completed 15 March 2026</div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Claims Section */}
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h3 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                      {claims.length} Itemized Deductions & Evidence Locker
+                    </h3>
+                    <p className="text-xs opacity-70">
+                      Single-line summary view • Click "Rationale" to inspect uploaded evidence & legal notes
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveView("rules")}
+                    className="px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition flex items-center gap-1.5 self-start sm:self-auto shadow-md"
+                  >
+                    <span>Run Legal Audit</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="space-y-2.5">
+                  {claims.map((claim, index) => {
+                    const isExpanded = !!expandedClaims[claim.id];
+
+                    return (
+                      <div
+                        key={claim.id}
+                        className={`border rounded-2xl p-3 sm:p-4 transition-all shadow-sm ${
+                          claim.statuteApplied && claim.statutoryAllowed === 0
+                            ? isDark
+                              ? "bg-[#161B18] border-emerald-500/40"
+                              : "bg-emerald-50/60 border-emerald-400"
+                            : isDark
+                            ? "bg-[#1C1A1A] border-[#363232] hover:border-[#4D4747]"
+                            : "bg-white border-[#E0DDDD] hover:border-[#C8C4C4]"
+                        }`}
                       >
-                        {/* Legal Precedent Callout */}
-                        <div
-                          className={`p-3 rounded-xl text-xs flex items-start gap-2 border ${
-                            isDark
-                              ? "bg-emerald-950/30 border-emerald-800/40 text-emerald-300"
-                              : "bg-emerald-50 border-emerald-200 text-emerald-900"
-                          }`}
-                        >
-                          <Scale className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                          <div>
-                            <span className="font-bold text-emerald-400">{claim.legalBadge}: </span>
-                            {claim.legalNote}
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div
+                              className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center shrink-0 border ${
+                                isDark
+                                  ? "bg-[#252222] border-[#3D3838] text-[#E0DDDD]"
+                                  : "bg-[#EAE7E7] border-[#D6D1D1] text-[#1E1B1B]"
+                              }`}
+                            >
+                              0{index + 1}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h4 className={`font-black text-base sm:text-lg truncate ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                                  {claim.title}
+                                </h4>
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase border shrink-0 ${
+                                    claim.statuteApplied
+                                      ? claim.statutoryAllowed === 0
+                                        ? "bg-rose-500/20 text-rose-400 border-rose-500/30"
+                                        : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                      : "bg-white/10 border-white/20 opacity-80"
+                                  }`}
+                                >
+                                  {claim.legalBadge}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <span className="text-[10px] font-bold uppercase opacity-60 block">Claimed</span>
+                              <span className={`text-base sm:text-lg font-black ${claim.statuteApplied && claim.statutoryAllowed < claim.landlordClaim ? "line-through text-rose-400/60" : "text-rose-400"}`}>
+                                ₹{claim.landlordClaim.toLocaleString("en-IN")}
+                              </span>
+                            </div>
+
+                            <ArrowLeftRight className="w-3.5 h-3.5 opacity-30 shrink-0" />
+
+                            <div className="text-right">
+                              <span className="text-[10px] font-bold uppercase text-emerald-400 block">Allowed Cap</span>
+                              <span className="text-base sm:text-lg font-black text-emerald-400">
+                                ₹{claim.statutoryAllowed.toLocaleString("en-IN")}
+                              </span>
+                            </div>
+
+                            <button
+                              onClick={() => toggleClaimDispute(claim.id)}
+                              className={`px-2.5 py-1 rounded-xl text-xs font-black border transition-all ${
+                                claim.isDisputedByTenant
+                                  ? "bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border-rose-500/30"
+                                  : "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border-emerald-500/30"
+                              }`}
+                            >
+                              {claim.isDisputedByTenant ? "Contested" : "Accepted"}
+                            </button>
+
+                            <button
+                              onClick={() => toggleClaimAccordion(claim.id)}
+                              className={`p-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1 ${
+                                isDark ? "bg-[#252222] border-[#3D3838] hover:bg-[#302C2C]" : "bg-[#EAE7E7] border-[#D6D1D1] hover:bg-[#E0DDDD]"
+                              }`}
+                              title="View statutory rationale and evidence breakdown"
+                            >
+                              <span className="hidden sm:inline">{isExpanded ? "Collapse" : "Rationale"}</span>
+                              {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                            </button>
                           </div>
                         </div>
 
-                        {/* Dual Stances */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                          <div className={`p-3 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
-                            <div className="font-bold mb-1 flex items-center gap-1.5 opacity-70">
-                              <Building2 className="w-3.5 h-3.5" /> Landlord Argument (Mr. Rao):
-                            </div>
-                            <p className="opacity-90">{claim.landlordRationale}</p>
-                          </div>
-                          <div className={`p-3 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
-                            <div className="font-bold text-emerald-400 mb-1 flex items-center gap-1.5">
-                              <User className="w-3.5 h-3.5 text-emerald-400" /> Tenant Rebuttal (Rohan):
-                            </div>
-                            <p className="opacity-90">{claim.tenantRebuttal}</p>
-                          </div>
-                        </div>
-
-                        {/* Uploaded Evidence Cards */}
-                        <div className="space-y-2">
-                          <div className="text-[11px] font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
-                            <Camera className="w-3.5 h-3.5 text-emerald-400" />
-                            Uploaded Evidence ({claim.evidences.length} files with tamper-proof timestamps)
-                          </div>
-                          <div className="flex flex-wrap gap-3">
-                            {claim.evidences.map((ev) => (
-                              <button
-                                key={ev.id}
-                                onClick={() => setPreviewEvidence(ev)}
-                                className={`flex items-center gap-3 p-2 pr-3 rounded-xl border text-xs text-left transition hover:ring-2 hover:ring-emerald-400/50 ${
-                                  isDark ? "bg-[#141313] border-[#332F2F]" : "bg-white border-[#E0DDDD] shadow-sm"
+                        {/* Collapsible Content */}
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.25 }}
+                              className={`mt-3 pt-3 border-t space-y-3 ${isDark ? "border-[#332F2F]" : "border-[#EAE7E7]"}`}
+                            >
+                              <div
+                                className={`p-2.5 rounded-xl text-xs flex items-start gap-2 border ${
+                                  isDark
+                                    ? "bg-emerald-950/30 border-emerald-800/40 text-emerald-300"
+                                    : "bg-emerald-50 border-emerald-200 text-emerald-900"
                                 }`}
                               >
-                                <img
-                                  src={ev.imageUrl}
-                                  alt={ev.name}
-                                  className="w-12 h-12 rounded-lg object-cover border border-white/10"
-                                />
+                                <Scale className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                                 <div>
-                                  <div className="font-bold">{ev.name}</div>
-                                  <div className="text-[10px] opacity-60">{ev.timestamp} • {ev.size}</div>
-                                  <div className="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold">
-                                    <CheckCircle2 className="w-3 h-3" /> Click to enlarge preview
+                                  <span className="font-bold text-emerald-400">Statutory Precedent: </span>
+                                  {claim.legalNote}
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                <div className={`p-2.5 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                                  <div className="font-bold mb-0.5 opacity-70 flex items-center gap-1">
+                                    <Building2 className="w-3.5 h-3.5" /> Landlord: {claim.landlordRationale}
                                   </div>
                                 </div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-          </div>
-        </motion.section>
+                                <div className={`p-2.5 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                                  <div className="font-bold text-emerald-400 mb-0.5 flex items-center gap-1">
+                                    <User className="w-3.5 h-3.5 text-emerald-400" /> Tenant: {claim.tenantRebuttal}
+                                  </div>
+                                </div>
+                              </div>
 
-        {/* ─────────────────────────────────────────────────────────
-            SECTION 2: KARNATAKA STATUTORY RULE ENGINE
-        ───────────────────────────────────────────────────────── */}
-        <motion.section
-          id="section-statutory-audit"
-          {...scrollFadeVariant}
-          className={`border rounded-3xl p-6 sm:p-8 space-y-6 transition-colors shadow-2xl relative overflow-hidden ${
-            isDark
-              ? "bg-gradient-to-br from-[#1C1A1A] via-[#151716] to-[#1C1A1A] border-[#363232]"
-              : "bg-white border-[#E0DDDD]"
-          }`}
-        >
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4 border-white/10">
-            <div className="space-y-1">
-              <div className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                <Scale className="w-4 h-4" /> Section 2: Statutory Compliance Check
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {claim.evidences.map((ev) => (
+                                  <button
+                                    key={ev.id}
+                                    onClick={() => setPreviewEvidence(ev)}
+                                    className={`flex items-center gap-2 p-1.5 pr-3 rounded-xl border text-xs text-left transition hover:ring-2 hover:ring-emerald-400/50 ${
+                                      isDark ? "bg-[#141313] border-[#332F2F]" : "bg-white border-[#E0DDDD] shadow-sm"
+                                    }`}
+                                  >
+                                    <img
+                                      src={ev.imageUrl}
+                                      alt={ev.name}
+                                      className="w-9 h-9 rounded-lg object-cover border border-white/10"
+                                    />
+                                    <div>
+                                      <div className="font-bold text-[11px]">{ev.name}</div>
+                                      <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                                        <Camera className="w-3 h-3" /> View Evidence ({ev.size})
+                                      </div>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <h3 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
-                The Karnataka Rent Control Act — Statutory Audit Engine
-              </h3>
-              <p className="text-xs opacity-70 max-w-2xl">
-                Benchmarked against Karnataka Rent Control Act, Section 12 wear & tear standards, and Model Tenancy Act deposit provisions.
-              </p>
-            </div>
-
-            {/* Run Audit Action Button */}
-            <button
-              onClick={handleTriggerAudit}
-              disabled={auditState === "running"}
-              className={`px-5 py-3 rounded-2xl text-xs font-black flex items-center gap-2 shadow-lg transition-all ${
-                auditState === "completed"
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                  : auditState === "running"
-                  ? "bg-emerald-500/40 text-slate-950 cursor-wait"
-                  : "bg-emerald-500 hover:bg-emerald-400 text-slate-950 animate-pulse shadow-emerald-900/40"
-              }`}
-            >
-              {auditState === "running" ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Running Legal Verification...
-                </>
-              ) : auditState === "completed" ? (
-                <>
-                  <BadgeCheck className="w-4 h-4 text-emerald-400" />
-                  Statutory Audit Executed
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  Execute Statutory Compliance Check
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Animated Progress Sweep Bar */}
-          {auditState === "running" && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs font-bold text-emerald-400">
-                <span>Auditing tenancy lease against Karnataka civil precedent...</span>
-                <span>{auditProgress}%</span>
-              </div>
-              <div className="w-full h-3 rounded-full bg-white/10 overflow-hidden">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-300"
-                  style={{ width: `${auditProgress}%` }}
-                />
-              </div>
-            </div>
+            </motion.div>
           )}
 
-          {/* Visual Deduction Slashes Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Painting item */}
-            <div className={`p-4 rounded-2xl border transition-all ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
-              <div className="text-xs font-bold mb-1">Painting & Wall Restoration</div>
-              <div className="flex items-baseline gap-2">
-                <span className={`text-lg font-black ${auditState === "completed" ? "line-through text-rose-400/60" : "text-rose-400"}`}>
-                  ₹35,000
-                </span>
-                {auditState === "completed" && (
-                  <span className="text-xl font-black text-emerald-400">→ ₹0</span>
-                )}
-              </div>
-              {auditState === "completed" && (
-                <div className="mt-2 text-[10px] font-bold px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  ✓ Sec 12: Normal Wear & Tear Exempt (Tenancy &gt;= 12 mos)
-                </div>
-              )}
-            </div>
-
-            {/* Geyser item */}
-            <div className={`p-4 rounded-2xl border transition-all ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
-              <div className="text-xs font-bold mb-1">Fixture Damage — Bajaj Geyser</div>
-              <div className="flex items-baseline gap-2">
-                <span className={`text-lg font-black ${auditState === "completed" ? "line-through text-rose-400/60" : "text-rose-400"}`}>
-                  ₹20,000
-                </span>
-                {auditState === "completed" && (
-                  <span className="text-xl font-black text-emerald-400">→ ₹12,000</span>
-                )}
-              </div>
-              {auditState === "completed" && (
-                <div className="mt-2 text-[10px] font-bold px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  ✓ 10% Straight-Line Cap over 4 years
-                </div>
-              )}
-            </div>
-
-            {/* Deep cleaning item */}
-            <div className={`p-4 rounded-2xl border transition-all ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
-              <div className="text-xs font-bold mb-1">Deep Sanitization</div>
-              <div className="flex items-baseline gap-2">
-                <span className={`text-lg font-black ${auditState === "completed" ? "line-through text-rose-400/60" : "text-rose-400"}`}>
-                  ₹12,000
-                </span>
-                {auditState === "completed" && (
-                  <span className="text-xl font-black text-emerald-400">→ ₹4,500</span>
-                )}
-              </div>
-              {auditState === "completed" && (
-                <div className="mt-2 text-[10px] font-bold px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  ✓ Bengaluru standard 2BHK/3BHK cap
-                </div>
-              )}
-            </div>
-
-            {/* BESCOM item */}
-            <div className={`p-4 rounded-2xl border transition-all ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
-              <div className="text-xs font-bold mb-1">BESCOM Electricity Bill</div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-lg font-black text-emerald-400">₹3,500</span>
-                <span className="text-xs opacity-60">(Approved Actuals)</span>
-              </div>
-              {auditState === "completed" && (
-                <div className="mt-2 text-[10px] font-bold px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  ✓ Meter photo and online ledger verified
-                </div>
-              )}
-            </div>
-
-            {/* Notice period item */}
-            <div className={`p-4 rounded-2xl border transition-all ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
-              <div className="text-xs font-bold mb-1">Notice Period Penalty</div>
-              <div className="flex items-baseline gap-2">
-                <span className={`text-lg font-black ${auditState === "completed" ? "line-through text-rose-400/60" : "text-rose-400"}`}>
-                  ₹11,500
-                </span>
-                {auditState === "completed" && (
-                  <span className="text-xl font-black text-emerald-400">→ ₹0</span>
-                )}
-              </div>
-              {auditState === "completed" && (
-                <div className="mt-2 text-[10px] font-bold px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  ✓ 30-day WhatsApp notice verified
-                </div>
-              )}
-            </div>
-
-            {/* Total Deductions Summary Card */}
-            <div
-              className={`p-4 rounded-2xl border ${
-                auditState === "completed"
-                  ? "bg-emerald-500/10 border-emerald-500/40"
-                  : isDark
-                  ? "bg-[#141313] border-[#332F2F]"
-                  : "bg-[#F9F8F8] border-[#E0DDDD]"
-              }`}
+          {/* ─────────────────────────────────────────────────────────
+              VIEW 2: KARNATAKA LEGAL RULES (SEC 12 AUDIT ENGINE)
+          ───────────────────────────────────────────────────────── */}
+          {activeView === "rules" && (
+            <motion.div
+              key="view-rules"
+              {...scrollFadeVariant}
+              className="space-y-6"
             >
-              <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-1">
-                Dynamic Deductions Meter
+              {/* Statutory Audit Engine Card */}
+              <div
+                className={`border rounded-3xl p-5 sm:p-6 space-y-4 transition-colors shadow-xl ${
+                  isDark ? "bg-[#1C1A1A] border-[#363232]" : "bg-white border-[#E0DDDD]"
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3 border-white/10">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                      <Scale className="w-4 h-4" /> Karnataka Tenancy Statutory Rule Engine
+                    </div>
+                    <h3 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                      Section 12 Wear-and-Tear & Statutory Reduction Engine
+                    </h3>
+                  </div>
+
+                  <button
+                    onClick={handleTriggerAudit}
+                    disabled={auditState === "running"}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 shadow-md transition-all ${
+                      auditState === "completed"
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                        : auditState === "running"
+                        ? "bg-emerald-500/40 text-slate-950 cursor-wait"
+                        : "bg-emerald-500 hover:bg-emerald-400 text-slate-950 animate-pulse shadow-emerald-900/40"
+                    }`}
+                  >
+                    {auditState === "running" ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Verifying Statutes...
+                      </>
+                    ) : auditState === "completed" ? (
+                      <>
+                        <BadgeCheck className="w-4 h-4 text-emerald-400" />
+                        Audit Applied (Capped at ₹{statutoryCap.toLocaleString("en-IN")})
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3.5 h-3.5" />
+                        Execute Statutory Compliance Check
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {auditState === "running" && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs font-bold text-emerald-400">
+                      <span>Applying Section 12 wear & tear & 10% depreciation caps...</span>
+                      <span>{auditProgress}%</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-emerald-500 to-emerald-300"
+                        style={{ width: `${auditProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Slashes Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 text-xs">
+                  {claims.map((claim, idx) => {
+                    const isSlashed = auditState === "completed" && claim.statutoryAllowed < claim.landlordClaim;
+                    return (
+                      <div
+                        key={claim.id}
+                        className={`p-3 rounded-xl border ${
+                          isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"
+                        }`}
+                      >
+                        <span className="opacity-60 text-[10px] uppercase font-bold block truncate">
+                          {idx + 1}. {claim.title.replace(" Dispute", "")}
+                        </span>
+                        <div className="flex items-baseline gap-1 mt-0.5 flex-wrap">
+                          <span
+                            className={`font-bold ${
+                              isSlashed ? "line-through text-rose-400/60" : "text-rose-400"
+                            }`}
+                          >
+                            ₹{claim.landlordClaim.toLocaleString("en-IN")}
+                          </span>
+                          {auditState === "completed" && (
+                            <span className="font-black text-emerald-400">
+                              → ₹{claim.statutoryAllowed.toLocaleString("en-IN")}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[9px] text-emerald-400 font-bold block mt-1 truncate">
+                          {claim.legalBadge}
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                  <div
+                    className={`p-3 rounded-xl border ${
+                      auditState === "completed"
+                        ? "bg-emerald-500/10 border-emerald-500/40"
+                        : isDark
+                        ? "bg-[#141313] border-[#332F2F]"
+                        : "bg-[#F9F8F8] border-[#E0DDDD]"
+                    }`}
+                  >
+                    <span className="text-emerald-400 text-[10px] uppercase font-black block">Total Allowed</span>
+                    <div className="text-lg font-black mt-0.5 text-emerald-400">
+                      ₹{auditState === "completed" ? statutoryCap.toLocaleString("en-IN") : initialLandlordTotal.toLocaleString("en-IN")}
+                    </div>
+                    <span className="text-[9px] text-emerald-400 font-bold block mt-1">
+                      {auditState === "completed"
+                        ? `₹${totalSlashed.toLocaleString("en-IN")} Slashed`
+                        : "Pre-Audit"}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className={`text-2xl font-black ${auditState === "completed" ? "text-emerald-400" : "text-rose-400"}`}>
-                  ₹{auditState === "completed" ? "20,000" : "82,000"}
-                </span>
-                {auditState === "completed" && (
-                  <span className="text-xs font-bold text-emerald-400">
-                    (₹62,000 Saved)
+
+              {/* Comprehensive Statutory Citations & Legal Matrix */}
+              <div className={`p-5 rounded-3xl border space-y-4 ${isDark ? "bg-[#1C1A1A] border-[#363232]" : "bg-white border-[#E0DDDD]"}`}>
+                <div className="flex items-center justify-between border-b pb-3 border-white/10">
+                  <div className="flex items-center gap-2">
+                    <Scale className="w-5 h-5 text-emerald-400" />
+                    <h4 className="text-base sm:text-lg font-black">
+                      Karnataka Tenancy Legal Grounding & Benchmark Citations
+                    </h4>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-400 bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                    Judge Benchmark Reference
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className={`p-3.5 rounded-2xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                    <div className="font-black text-sm text-emerald-400 mb-1 flex items-center gap-1.5">
+                      <Award className="w-4 h-4" /> 1. Sec 12 & 13, Karnataka Rent Act, 1999
+                    </div>
+                    <div className="text-[10px] font-bold text-rose-400 uppercase mb-1">Wear-and-Tear Painting Zero-Out</div>
+                    <p className="opacity-80 leading-relaxed text-[11px]">
+                      Landlord is statutorily mandated to maintain tenantable repair. Natural wall scuffing, sun exposure fading, and micro-cracks after 12+ months occupancy cannot be deducted. Painting deduction is strictly ₹0.
+                    </p>
+                  </div>
+
+                  <div className={`p-3.5 rounded-2xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                    <div className="font-black text-sm text-emerald-400 mb-1 flex items-center gap-1.5">
+                      <TrendingDown className="w-4 h-4" /> 2. 10% Fixture Straight-Line Depreciation
+                    </div>
+                    <div className="text-[10px] font-bold text-rose-400 uppercase mb-1">Appliance Replacement Cap</div>
+                    <p className="opacity-80 leading-relaxed text-[11px]">
+                      Under judicial asset depreciation schedules, residential electrical appliances depreciate at 10% per annum. The 4-year-old Bajaj geyser retains 60% value (₹12,000), disallowing ₹8,000 of the ₹20,000 claim.
+                    </p>
+                  </div>
+
+                  <div className={`p-3.5 rounded-2xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                    <div className="font-black text-sm text-emerald-400 mb-1 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4" /> 3. ₹4,500 Bengaluru Deep Clean Ceiling
+                    </div>
+                    <div className="text-[10px] font-bold text-rose-400 uppercase mb-1">Market Benchmark Ceiling</div>
+                    <p className="opacity-80 leading-relaxed text-[11px]">
+                      Standard residential turnover for professional deep cleaning in Bengaluru is capped at ₹4,500 for a 3BHK flat. Unitemized third-party vendor claims of ₹12,000 are scaled down to prevailing market rates.
+                    </p>
+                  </div>
+
+                  <div className={`p-3.5 rounded-2xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                    <div className="font-black text-sm text-emerald-400 mb-1 flex items-center gap-1.5">
+                      <ShieldAlert className="w-4 h-4" /> 4. Model Tenancy Act (MTA) Deposit Cap
+                    </div>
+                    <div className="text-[10px] font-bold text-rose-400 uppercase mb-1">2-Month Security Deposit Ceiling</div>
+                    <p className="opacity-80 leading-relaxed text-[11px]">
+                      Under Chapter IV of the Model Tenancy Act, residential security deposits are capped at 2 months rent (₹40,000). The ₹2,00,000 deposit represents 10 months rent, holding ₹1,60,000 in excess.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Next Step Button */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <button
+                    onClick={() => setActiveView("dashboard")}
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
+                      isDark ? "border-[#3A3535] text-[#A8A3A3] hover:text-white" : "border-[#D6D1D1] text-[#5E5959] hover:text-black"
+                    }`}
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Back to Dashboard</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveView("negotiation")}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 transition shadow-md"
+                  >
+                    <span>Proceed to 3-Round Negotiation</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────
+              VIEW 3: 3-ROUND NEGOTIATION ROOM
+          ───────────────────────────────────────────────────────── */}
+          {activeView === "negotiation" && (
+            <motion.div
+              key="view-negotiation"
+              {...scrollFadeVariant}
+              className="space-y-6"
+            >
+              <div
+                className={`border rounded-3xl p-5 sm:p-6 space-y-4 transition-colors shadow-xl ${
+                  isDark ? "bg-[#1C1A1A] border-[#363232]" : "bg-white border-[#E0DDDD]"
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3 border-white/10">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                      <Handshake className="w-4 h-4" /> Section 3: Interactive Negotiation War Room
+                    </div>
+                    <h3 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                      Offer & Counter-Offer Convergence Bar
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Round {negRound} of 3
+                    </span>
+                  </div>
+                </div>
+
+                {/* Visual Settlement Gap Bar */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-black">
+                    <span className="text-emerald-400">Tenant Offer: ₹{tenantOffer.toLocaleString("en-IN")}</span>
+                    <span className="text-amber-400 text-sm">
+                      Active Gap: ₹{currentGap.toLocaleString("en-IN")} ({gapPercentage}%)
+                    </span>
+                    <span className="text-rose-400">Landlord Demand: ₹{landlordOffer.toLocaleString("en-IN")}</span>
+                  </div>
+
+                  <div className="w-full h-4 rounded-full overflow-hidden flex bg-white/10 border border-white/10">
+                    <motion.div
+                      className="h-full bg-emerald-400"
+                      animate={{ width: `${Math.min(100, (tenantOffer / initialLandlordTotal) * 100)}%` }}
+                      transition={{ duration: 0.35 }}
+                    />
+                    <motion.div
+                      className="h-full bg-amber-400/80"
+                      animate={{ width: `${Math.max(0, (currentGap / initialLandlordTotal) * 100)}%` }}
+                      transition={{ duration: 0.35 }}
+                    />
+                    <motion.div
+                      className="h-full bg-rose-500/80"
+                      animate={{ width: `${Math.max(0, (1 - landlordOffer / initialLandlordTotal) * 100)}%` }}
+                      transition={{ duration: 0.35 }}
+                    />
+                  </div>
+                </div>
+
+                {/* Counteroffer Slider & Quick Chips */}
+                <div className={`p-4 rounded-2xl border space-y-3 ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider">Proposed Counteroffer:</span>
+                    <span className="text-2xl font-black text-emerald-400">
+                      ₹{counterSlider.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+
+                  <input
+                    type="range"
+                    min={0}
+                    max={initialLandlordTotal || 80000}
+                    step={500}
+                    value={counterSlider}
+                    onChange={(e) => setCounterSlider(Number(e.target.value))}
+                    className="w-full h-2.5 rounded-full appearance-none cursor-pointer accent-emerald-400 bg-white/20"
+                  />
+
+                  {/* Quick Action Chips & Submit */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        onClick={() => setCounterSlider(statutoryCap)}
+                        className={`px-3 py-1 rounded-xl border text-xs font-black transition ${
+                          counterSlider === statutoryCap
+                            ? "bg-emerald-500 text-slate-950 border-emerald-500"
+                            : isDark
+                            ? "bg-[#222020] border-[#3A3535] text-emerald-400"
+                            : "bg-white border-[#D6D1D1] text-emerald-700"
+                        }`}
+                      >
+                        Match Legal Cap (₹{statutoryCap.toLocaleString("en-IN")})
+                      </button>
+
+                      {(() => {
+                        const splitAmt = Math.round(((statutoryCap + landlordOffer) / 2) / 500) * 500;
+                        return (
+                          <button
+                            onClick={() => setCounterSlider(splitAmt)}
+                            className={`px-3 py-1 rounded-xl border text-xs font-black transition ${
+                              counterSlider === splitAmt
+                                ? "bg-emerald-500 text-slate-950 border-emerald-500"
+                                : isDark
+                                ? "bg-[#222020] border-[#3A3535] text-[#E0DDDD]"
+                                : "bg-white border-[#D6D1D1] text-[#1E1B1B]"
+                            }`}
+                          >
+                            Propose Split (₹{splitAmt.toLocaleString("en-IN")})
+                          </button>
+                        );
+                      })()}
+
+                      <button
+                        onClick={() => setCounterSlider(landlordOffer)}
+                        className={`px-3 py-1 rounded-xl border text-xs font-black transition ${
+                          counterSlider === landlordOffer
+                            ? "bg-emerald-500 text-slate-950 border-emerald-500"
+                            : isDark
+                            ? "bg-[#222020] border-[#3A3535] text-[#E0DDDD]"
+                            : "bg-white border-[#D6D1D1] text-[#1E1B1B]"
+                        }`}
+                      >
+                        Accept Offer (₹{landlordOffer.toLocaleString("en-IN")})
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => handleMakeOffer(counterSlider)}
+                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 transition shadow-md shadow-emerald-950/50"
+                    >
+                      <Handshake className="w-4 h-4" />
+                      Submit Round {negRound} Offer
+                    </button>
+                  </div>
+                </div>
+
+                {/* Convergence Alert */}
+                {isSettled && (
+                  <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                      <div className="text-xs">
+                        <strong className="text-emerald-400 text-sm block">Mutual Accord Reached at ₹{activeDeduction.toLocaleString("en-IN")}!</strong>
+                        Settlement Deed is ready for digital signature and execution.
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setActiveView("settlement")}
+                      className="px-3.5 py-1.5 bg-emerald-400 text-slate-950 font-black rounded-xl text-xs hover:bg-emerald-300 transition shrink-0"
+                    >
+                      View Executed Deed ↓
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────
+              VIEW 4: FINAL SETTLEMENT DEED (e-Stamp Certificate)
+          ───────────────────────────────────────────────────────── */}
+          {activeView === "settlement" && (
+            <motion.div
+              key="view-settlement"
+              {...scrollFadeVariant}
+              className="space-y-4"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                    <Stamp className="w-4 h-4" /> Section 4: Final Accord & Execution
+                  </div>
+                  <h3 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                    Karnataka e-Stamp Certificate & Settlement Deed
+                  </h3>
+                </div>
+                {!isSettled && (
+                  <span className="text-xs px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5" /> Unlocks on consensus
                   </span>
                 )}
               </div>
-              <div className="text-[11px] opacity-70 mt-1">
-                Net refund due to Rohan:{" "}
-                <strong className="text-emerald-400">
-                  ₹{auditState === "completed" ? "1,80,000" : "1,18,000"}
-                </strong>
-              </div>
-            </div>
-          </div>
-        </motion.section>
 
-        {/* ─────────────────────────────────────────────────────────
-            SECTION 3: 3-ROUND INTERACTIVE NEGOTIATION ROOM
-        ───────────────────────────────────────────────────────── */}
-        <motion.section
-          id="section-negotiation"
-          {...scrollFadeVariant}
-          className={`border rounded-3xl p-6 sm:p-8 space-y-6 transition-colors shadow-2xl ${
-            isDark ? "bg-[#1C1A1A] border-[#363232]" : "bg-white border-[#E0DDDD]"
-          }`}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-white/10">
-            <div>
-              <div className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                <Handshake className="w-4 h-4" /> Section 3: Conciliation & Settlement
-              </div>
-              <h3 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
-                3-Round Interactive Negotiation Room
-              </h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                Turn: Round {negRound} of 3
-              </span>
-            </div>
-          </div>
-
-          {/* Visual Settlement Gap Bar */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-bold">
-              <span className="text-emerald-400">Tenant Offer: ₹{tenantOffer.toLocaleString("en-IN")}</span>
-              <span className="text-amber-400 font-extrabold">
-                Current Gap: ₹{currentGap.toLocaleString("en-IN")} ({gapPercentage}%)
-              </span>
-              <span className="text-rose-400">Landlord Demand: ₹{landlordOffer.toLocaleString("en-IN")}</span>
-            </div>
-
-            {/* Dual Colored Gap Meter */}
-            <div className="w-full h-4 rounded-full overflow-hidden flex bg-white/10 border border-white/10">
-              <motion.div
-                className="h-full bg-emerald-400"
-                animate={{ width: `${Math.min(100, (tenantOffer / initialLandlordTotal) * 100)}%` }}
-                transition={{ duration: 0.4 }}
-              />
-              <motion.div
-                className="h-full bg-amber-400/80"
-                animate={{ width: `${Math.max(0, (currentGap / initialLandlordTotal) * 100)}%` }}
-                transition={{ duration: 0.4 }}
-              />
-              <motion.div
-                className="h-full bg-rose-500/80"
-                animate={{ width: `${Math.max(0, (1 - landlordOffer / initialLandlordTotal) * 100)}%` }}
-                transition={{ duration: 0.4 }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] opacity-60">
-              <span>₹0</span>
-              <span>Statutory Benchmark: ₹20,000</span>
-              <span>₹82,000</span>
-            </div>
-          </div>
-
-          {/* Counteroffer Slider & Quick Chips */}
-          <div className={`p-5 rounded-2xl border space-y-4 ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <label className="text-xs font-bold uppercase tracking-wider">
-                Adjust Proposed Deduction Counteroffer:
-              </label>
-              <span className="text-2xl font-black text-emerald-400">
-                ₹{counterSlider.toLocaleString("en-IN")}
-              </span>
-            </div>
-
-            <input
-              type="range"
-              min={0}
-              max={82000}
-              step={500}
-              value={counterSlider}
-              onChange={(e) => setCounterSlider(Number(e.target.value))}
-              className="w-full h-2 rounded-full appearance-none cursor-pointer accent-emerald-400 bg-white/20"
-            />
-
-            {/* Quick Action Chips */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setCounterSlider(20000)}
-                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
-                    counterSlider === 20000
-                      ? "bg-emerald-500 text-slate-950 border-emerald-500"
-                      : isDark
-                      ? "bg-[#222020] border-[#3A3535] hover:bg-[#2D2A2A] text-emerald-400"
-                      : "bg-white border-[#D6D1D1] hover:bg-[#ECE9E9] text-emerald-700"
-                  }`}
-                >
-                  <Scale className="w-3 h-3" />
-                  Match Statutory Cap (₹20,000)
-                </button>
-
-                <button
-                  onClick={() => setCounterSlider(25000)}
-                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
-                    counterSlider === 25000
-                      ? "bg-emerald-500 text-slate-950 border-emerald-500"
-                      : isDark
-                      ? "bg-[#222020] border-[#3A3535] hover:bg-[#2D2A2A] text-[#E0DDDD]"
-                      : "bg-white border-[#D6D1D1] hover:bg-[#ECE9E9] text-[#1E1B1B]"
-                  }`}
-                >
-                  <ArrowLeftRight className="w-3 h-3" />
-                  Propose Split (₹25,000)
-                </button>
-
-                <button
-                  onClick={() => setCounterSlider(landlordOffer)}
-                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
-                    counterSlider === landlordOffer
-                      ? "bg-emerald-500 text-slate-950 border-emerald-500"
-                      : isDark
-                      ? "bg-[#222020] border-[#3A3535] hover:bg-[#2D2A2A] text-[#E0DDDD]"
-                      : "bg-white border-[#D6D1D1] hover:bg-[#ECE9E9] text-[#1E1B1B]"
-                  }`}
-                >
-                  <Check className="w-3 h-3" />
-                  Accept Current Offer (₹{landlordOffer.toLocaleString("en-IN")})
-                </button>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                onClick={() => handleMakeOffer(counterSlider)}
-                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-950/50"
+              {/* e-Stamp Styled Deed Paper */}
+              <div
+                className={`border-2 rounded-3xl overflow-hidden shadow-2xl transition-all relative ${
+                  isSettled
+                    ? "border-emerald-500/60"
+                    : "border-white/20 opacity-75 grayscale-[30%]"
+                } ${isDark ? "bg-[#181616]" : "bg-white"}`}
               >
-                <Handshake className="w-4 h-4" />
-                Submit Round {negRound} Offer
-              </button>
-            </div>
-          </div>
-
-          {/* Convergence Alert */}
-          {isSettled && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 flex items-center justify-between gap-4"
-            >
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
-                <div>
-                  <div className="font-bold text-sm text-emerald-400">
-                    Mutual Convergence Reached at ₹20,000!
+                {/* Header Band */}
+                <div
+                  className={`p-4 sm:p-5 border-b-2 text-center ${
+                    isDark
+                      ? "bg-[#0E1A14] border-emerald-500/40 text-[#E0DDDD]"
+                      : "bg-emerald-50 border-emerald-300 text-[#1A2E22]"
+                  }`}
+                >
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-0.5">
+                    Government of Karnataka • Department of Stamps & Registration
                   </div>
-                  <div className="text-xs opacity-90">
-                    Both parties are within 5% tolerance. Section 4 Deed of Settlement has unlocked below.
+                  <h2 className="text-lg sm:text-xl font-black tracking-wide">
+                    DEED OF MUTUAL SETTLEMENT & FINAL ACCORD
+                  </h2>
+                  <div className="flex flex-wrap items-center justify-center gap-3 text-[10px] font-mono opacity-60 mt-1">
+                    <span>Cert: IN-KA892401BLR2026</span>
+                    <span>•</span>
+                    <span>Sec 89 CPC, 1908</span>
+                    <span>•</span>
+                    <span>Stamp Duty: ₹500 (e-Challan #44891)</span>
+                  </div>
+                </div>
+
+                {/* Deed Content */}
+                <div className="p-5 sm:p-6 space-y-4 text-xs leading-relaxed">
+                  {/* Parties */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className={`p-3 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                      <div className="text-[10px] font-black uppercase text-emerald-400 mb-0.5">First Party (Tenant)</div>
+                      <div className="font-extrabold text-sm">{activeCase.tenant} (+91 98801 23456)</div>
+                      <div className="opacity-70 text-[11px]">{activeCase.address}</div>
+                    </div>
+
+                    <div className={`p-3 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                      <div className="text-[10px] font-black uppercase opacity-60 mb-0.5">Second Party (Landlord)</div>
+                      <div className="font-extrabold text-sm">{activeCase.landlord} (+91 94480 87654)</div>
+                      <div className="opacity-70 text-[11px]">Owner / Lessor of {activeCase.address.split(",")[0]}</div>
+                    </div>
+                  </div>
+
+                  {/* Financial Ledger */}
+                  <div className={`rounded-xl border overflow-hidden ${isDark ? "border-[#332F2F]" : "border-[#E0DDDD]"}`}>
+                    <div className={`grid grid-cols-3 p-2.5 text-[10px] font-black uppercase opacity-70 ${isDark ? "bg-[#1E1C1C]" : "bg-[#ECE9E9]"}`}>
+                      <span>Head of Account</span>
+                      <span className="text-center">Claim vs Permitted</span>
+                      <span className="text-right">Final Accord</span>
+                    </div>
+                    <div className="divide-y divide-white/10 text-xs">
+                      <div className="grid grid-cols-3 p-2.5">
+                        <span>Total Security Deposit</span>
+                        <span className="text-center opacity-70">Escrow Paid</span>
+                        <span className="text-right font-bold">₹{totalDepositEscrow.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="grid grid-cols-3 p-2.5">
+                        <span>Agreed Deductions</span>
+                        <span className="text-center text-rose-400">Reduced from ₹{initialLandlordTotal.toLocaleString("en-IN")}</span>
+                        <span className="text-right font-bold text-rose-400">(-) ₹{activeDeduction.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className={`grid grid-cols-3 p-2.5 font-extrabold ${isDark ? "bg-emerald-950/20 text-emerald-400" : "bg-emerald-50 text-emerald-800"}`}>
+                        <span className="text-sm font-black">Net Refund to {activeCase.tenant.split(" ")[0]}</span>
+                        <span className="text-center text-[10px] opacity-80">Instant Escrow Release</span>
+                        <span className="text-right text-lg font-black">₹{netRefund.toLocaleString("en-IN")}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Supabase Cryptographic Audit Callout */}
+                  <div className={`p-3 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                    isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div>
+                        <span className="font-bold text-emerald-400">Supabase Cryptographic Tamper-Proof Audit Trail</span>
+                        <div className="text-[10px] opacity-70">
+                          Row-level security audit hash #sb-{activeCase.id.toLowerCase()}-sha256. Executed under Section 89 CPC as a binding decree.
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+                      COMMITTED
+                    </span>
+                  </div>
+
+                  {/* Digital Signature Pads */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div
+                      onClick={() => {
+                        if (!tenantSigned) {
+                          setTenantSigned(true);
+                          setTenantSignTime(new Date().toLocaleString("en-IN"));
+                          confetti({ particleCount: 40, spread: 40 });
+                        }
+                      }}
+                      className={`p-3.5 rounded-xl border-2 border-dashed cursor-pointer transition ${
+                        tenantSigned
+                          ? "bg-emerald-500/10 border-emerald-500/60"
+                          : isDark
+                          ? "bg-[#141313] border-[#3D3838] hover:border-emerald-400/50"
+                          : "bg-[#F9F8F8] border-[#D6D1D1] hover:border-emerald-500"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black">{activeCase.tenant} (Tenant)</span>
+                        {tenantSigned ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                            Click to Sign
+                          </span>
+                        )}
+                      </div>
+                      {tenantSigned ? (
+                        <div className="mt-1 font-mono text-[10px] text-emerald-400">
+                          ✓ Digitally Signed: {tenantSignTime}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] opacity-60 mt-1">
+                          Clicking signs declaration affirming full deposit settlement.
+                        </p>
+                      )}
+                    </div>
+
+                    <div
+                      onClick={() => {
+                        if (!landlordSigned) {
+                          setLandlordSigned(true);
+                          setLandlordSignTime(new Date().toLocaleString("en-IN"));
+                          confetti({ particleCount: 40, spread: 40 });
+                        }
+                      }}
+                      className={`p-3.5 rounded-xl border-2 border-dashed cursor-pointer transition ${
+                        landlordSigned
+                          ? "bg-emerald-500/10 border-emerald-500/60"
+                          : isDark
+                          ? "bg-[#141313] border-[#3D3838] hover:border-emerald-400/50"
+                          : "bg-[#F9F8F8] border-[#D6D1D1] hover:border-emerald-500"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black">{activeCase.landlord} (Landlord)</span>
+                        {landlordSigned ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                            Click to Sign
+                          </span>
+                        )}
+                      </div>
+                      {landlordSigned ? (
+                        <div className="mt-1 font-mono text-[10px] text-emerald-400">
+                          ✓ Digitally Signed: {landlordSignTime}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] opacity-60 mt-1">
+                          Clicking authorizes escrow release of ₹{netRefund.toLocaleString("en-IN")} back to tenant.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Deed Action Footer */}
+                <div
+                  className={`p-4 border-t flex flex-wrap items-center justify-between gap-2 ${
+                    isDark ? "bg-[#141313] border-white/10" : "bg-[#F9F8F8] border-[#E0DDDD]"
+                  }`}
+                >
+                  <div className="text-xs font-bold">
+                    Execution:{" "}
+                    <strong className={tenantSigned && landlordSigned ? "text-emerald-400" : "text-amber-400"}>
+                      {tenantSigned && landlordSigned ? "Both Parties Executed" : "Awaiting Signatures"}
+                    </strong>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => window.print()}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 ${
+                        isDark
+                          ? "bg-[#222020] border-[#3A3535] text-[#E0DDDD] hover:bg-[#2D2A2A]"
+                          : "bg-white border-[#D6D1D1] text-[#1E1B1B] hover:bg-[#ECE9E9] shadow-sm"
+                      }`}
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      Print Deed
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        confetti({ particleCount: 160, spread: 100, origin: { y: 0.5 } });
+                        window.print();
+                      }}
+                      className="px-4 py-1.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition flex items-center gap-1.5 shadow-md"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download Executed PDF
+                    </button>
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => scrollToSection("section-settlement-deed")}
-                className="px-4 py-2 bg-emerald-400 text-slate-950 font-black rounded-xl text-xs hover:bg-emerald-300 transition shrink-0"
-              >
-                Go to Execution Deed ↓
-              </button>
             </motion.div>
           )}
-        </motion.section>
 
-        {/* ─────────────────────────────────────────────────────────
-            SECTION 4: SETTLEMENT DEED & DIGITAL SIGNING (e-Stamp)
-        ───────────────────────────────────────────────────────── */}
-        <motion.section
-          id="section-settlement-deed"
-          {...scrollFadeVariant}
-          className="space-y-4"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <div className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                <Stamp className="w-4 h-4" /> Section 4: Final Accord & Execution
-              </div>
-              <h3 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
-                Karnataka e-Stamp Certificate & Settlement Deed
-              </h3>
-            </div>
-            {!isSettled && (
-              <span className="text-xs px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5" /> Unlocks on consensus (or click Fast-Forward)
-              </span>
-            )}
-          </div>
-
-          {/* e-Stamp Styled Deed Paper */}
-          <div
-            className={`border-2 rounded-3xl overflow-hidden shadow-2xl transition-all relative ${
-              isSettled
-                ? "border-emerald-500/60"
-                : "border-white/20 opacity-75 grayscale-[30%]"
-            } ${isDark ? "bg-[#181616]" : "bg-white"}`}
-          >
-            {/* Watermark Emblem */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none select-none">
-              <Scale className="w-96 h-96" />
-            </div>
-
-            {/* Official e-Stamp Header Band */}
-            <div
-              className={`p-6 border-b-2 text-center relative ${
-                isDark
-                  ? "bg-[#0E1A14] border-emerald-500/40 text-[#E0DDDD]"
-                  : "bg-emerald-50 border-emerald-300 text-[#1A2E22]"
-              }`}
+          {/* ─────────────────────────────────────────────────────────
+              VIEW 5: FULL-SCREEN INTAKE & LEGAL FILING (FORM 1-A)
+          ───────────────────────────────────────────────────────── */}
+          {activeView === "intake" && (
+            <motion.div
+              key="view-intake"
+              {...scrollFadeVariant}
+              className="space-y-6"
             >
-              <div className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-emerald-500 mb-1">
-                Government of Karnataka • Department of Stamps & Registration
-              </div>
-              <h2 className="text-xl sm:text-2xl font-black tracking-wide">
-                DEED OF MUTUAL SETTLEMENT & FINAL ACCORD
-              </h2>
-              <p className="text-xs opacity-75 mt-1">
-                Concluded pursuant to Section 89 of Code of Civil Procedure, 1908 & Section 10 Indian Contract Act, 1872
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] font-mono opacity-60 mt-2">
-                <span>Cert No: IN-KA892401BLR2026</span>
-                <span>•</span>
-                <span>Jurisdiction: Court of Small Causes, Bengaluru</span>
-                <span>•</span>
-                <span>Stamp Duty Paid: ₹500 (e-Challan #44891)</span>
-              </div>
-            </div>
-
-            {/* Deed Content */}
-            <div className="p-6 sm:p-8 space-y-6 text-xs sm:text-sm leading-relaxed">
-              {/* Parties */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className={`p-4 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
-                  <div className="text-[10px] font-bold uppercase text-emerald-400 mb-1">First Party (Tenant)</div>
-                  <div className="font-extrabold text-base">Rohan Sharma</div>
-                  <div className="text-xs opacity-70">Flat 402, Prestige Shantiniketan, Whitefield, Bengaluru</div>
-                  <div className="text-[11px] opacity-60 mt-1">Aadhaar Verified • +91 98801 23456</div>
-                </div>
-
-                <div className={`p-4 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
-                  <div className="text-[10px] font-bold uppercase opacity-60 mb-1">Second Party (Landlord)</div>
-                  <div className="font-extrabold text-base">K. Raghavendra Rao</div>
-                  <div className="text-xs opacity-70">Owner / Lessor of Flat 402, Tower 3</div>
-                  <div className="text-[11px] opacity-60 mt-1">PAN Verified • +91 94480 87654</div>
-                </div>
-              </div>
-
-              {/* Resolved Terms Table */}
-              <div className="space-y-2">
-                <div className="font-bold text-xs uppercase tracking-wider text-emerald-400">
-                  Operative Clauses & Financial Ledger:
-                </div>
-                <div className={`rounded-xl border overflow-hidden ${isDark ? "border-[#332F2F]" : "border-[#E0DDDD]"}`}>
-                  <div className={`grid grid-cols-3 p-3 text-[10px] font-bold uppercase opacity-70 ${isDark ? "bg-[#1E1C1C]" : "bg-[#ECE9E9]"}`}>
-                    <span>Head of Account</span>
-                    <span className="text-center">Claimed vs Permitted</span>
-                    <span className="text-right">Final Accord</span>
-                  </div>
-                  <div className="divide-y divide-white/10 text-xs">
-                    <div className="grid grid-cols-3 p-3">
-                      <span>Total Security Deposit Paid</span>
-                      <span className="text-center opacity-70">Standard 10 Months</span>
-                      <span className="text-right font-bold">₹2,00,000</span>
+              {/* Header Card */}
+              <div
+                className={`rounded-3xl p-5 sm:p-7 border shadow-xl relative overflow-hidden transition-colors ${
+                  isDark
+                    ? "bg-gradient-to-br from-[#1C1A1A] via-[#161414] to-[#1E1C1C] border-[#363232]"
+                    : "bg-gradient-to-br from-white via-[#F9F8F8] to-[#ECE9E9] border-[#E0DDDD]"
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4 border-white/10">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setActiveView("dashboard");
+                          document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className={`px-3 py-1.5 rounded-xl border text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+                          isDark
+                            ? "bg-[#222020] border-[#3A3535] text-[#E0DDDD] hover:bg-[#2D2A2A] hover:text-white"
+                            : "bg-white border-[#D6D1D1] text-[#1E1B1B] hover:bg-[#ECE9E9] shadow-sm"
+                        }`}
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>← Back to Dashboard</span>
+                      </button>
+                      <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        Karnataka Statutory Intake
+                      </span>
                     </div>
-                    <div className="grid grid-cols-3 p-3">
-                      <span>Mutually Agreed Deductions (Cap)</span>
-                      <span className="text-center text-rose-400">Reduced from ₹82,000</span>
-                      <span className="text-right font-bold text-rose-400">(-) ₹20,000</span>
-                    </div>
-                    <div className={`grid grid-cols-3 p-3 font-extrabold text-sm ${isDark ? "bg-emerald-950/20 text-emerald-400" : "bg-emerald-50 text-emerald-800"}`}>
-                      <span>Net Refund Payable to Rohan</span>
-                      <span className="text-center text-xs opacity-80">Instant Escrow Release</span>
-                      <span className="text-right text-base font-black">₹1,80,000</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Undertaking terms */}
-              <div className="space-y-1.5 text-xs opacity-80">
-                <p>
-                  1. The Landlord hereby authorizes the escrow disbursal of <strong>₹1,80,000</strong> to Tenant Rohan Sharma via UPI / IMPS within 24 hours of digital execution.
-                </p>
-                <p>
-                  2. The Tenant accepts the deduction of <strong>₹20,000</strong> (comprising ₹12k geyser depreciated replacement, ₹4.5k deep clean, and ₹3.5k BESCOM electricity) as complete and final accord.
-                </p>
-                <p>
-                  3. Both parties irrevocably discharge all claims under Tenancy Agreement of 15 March 2023. This deed holds the status of an arbitral decree under Section 89 of Code of Civil Procedure, 1908.
-                </p>
-              </div>
-
-              {/* Interactive Digital Signatures Pad */}
-              <div className="space-y-2 pt-2">
-                <div className="font-bold text-xs uppercase tracking-wider text-emerald-400">
-                  Digital Execution Pads:
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Rohan Signature Pad */}
-                  <div
-                    onClick={() => {
-                      if (!tenantSigned) {
-                        setTenantSigned(true);
-                        setTenantSignTime(new Date().toLocaleString("en-IN"));
-                        confetti({ particleCount: 40, spread: 40 });
-                      }
-                    }}
-                    className={`p-4 rounded-xl border-2 border-dashed cursor-pointer transition ${
-                      tenantSigned
-                        ? "bg-emerald-500/10 border-emerald-500/60"
-                        : isDark
-                        ? "bg-[#141313] border-[#3D3838] hover:border-emerald-400/50"
-                        : "bg-[#F9F8F8] border-[#D6D1D1] hover:border-emerald-500"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold">Rohan Sharma (Tenant)</span>
-                      {tenantSigned ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      ) : (
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
-                          Click to Sign
-                        </span>
-                      )}
-                    </div>
-                    {tenantSigned ? (
-                      <div className="mt-2 font-mono text-[11px] text-emerald-400">
-                        ✓ Digitally Signed & Timestamped: {tenantSignTime}
-                        <div className="text-[9px] opacity-60">SHA-256: 4f8b2...89a1</div>
-                      </div>
-                    ) : (
-                      <p className="text-[11px] opacity-60 mt-2">
-                        Clicking signs the declaration affirming full deposit settlement.
-                      </p>
-                    )}
+                    <h2 className={`text-2xl sm:text-3xl font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                      Form 1-A: Notice of Security Deposit Dispute
+                    </h2>
+                    <p className="text-xs sm:text-sm opacity-70 leading-relaxed max-w-3xl">
+                      Prescribed filing under Karnataka Rent Control Framework & ODR Mediation Protocols
+                    </p>
                   </div>
 
-                  {/* Rao Signature Pad */}
-                  <div
-                    onClick={() => {
-                      if (!landlordSigned) {
-                        setLandlordSigned(true);
-                        setLandlordSignTime(new Date().toLocaleString("en-IN"));
-                        confetti({ particleCount: 40, spread: 40 });
-                      }
-                    }}
-                    className={`p-4 rounded-xl border-2 border-dashed cursor-pointer transition ${
-                      landlordSigned
-                        ? "bg-emerald-500/10 border-emerald-500/60"
-                        : isDark
-                        ? "bg-[#141313] border-[#3D3838] hover:border-emerald-400/50"
-                        : "bg-[#F9F8F8] border-[#D6D1D1] hover:border-emerald-500"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold">K. Raghavendra Rao (Landlord)</span>
-                      {landlordSigned ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      ) : (
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
-                          Click to Sign
-                        </span>
-                      )}
-                    </div>
-                    {landlordSigned ? (
-                      <div className="mt-2 font-mono text-[11px] text-emerald-400">
-                        ✓ Digitally Signed & Timestamped: {landlordSignTime}
-                        <div className="text-[9px] opacity-60">SHA-256: 9e3a1...77c2</div>
-                      </div>
-                    ) : (
-                      <p className="text-[11px] opacity-60 mt-2">
-                        Clicking authorizes escrow release of ₹1,80,000 back to tenant.
-                      </p>
-                    )}
+                  {/* Seed Demo Button */}
+                  <div className="shrink-0 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSeedDemoCase}
+                      className="px-3.5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-400/20 to-emerald-400/20 text-amber-400 hover:text-amber-300 border border-amber-400/30 hover:border-amber-400/60 transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                      title="Pre-fill realistic Bangalore tenant dispute data with one click"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>⚡ Seed Demo Case</span>
+                    </button>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Action Bar */}
-            <div
-              className={`p-5 border-t flex flex-wrap items-center justify-between gap-3 ${
-                isDark ? "bg-[#141313] border-white/10" : "bg-[#F9F8F8] border-[#E0DDDD]"
-              }`}
-            >
-              <div className="text-xs opacity-70">
-                Status:{" "}
-                <strong className={tenantSigned && landlordSigned ? "text-emerald-400" : "text-amber-400"}>
-                  {tenantSigned && landlordSigned
-                    ? "Both Parties Signed • Ready for Official Execution"
-                    : "Awaiting Dual Signatures"}
-                </strong>
+                {/* Progress Stepper (Step 1 → Step 2 → Step 3) */}
+                <div className="pt-4 grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
+                  {[
+                    {
+                      step: 1 as const,
+                      num: "01",
+                      title: "Parties & Tenancy",
+                      subtitle: "Locality, lease term & contacts",
+                    },
+                    {
+                      step: 2 as const,
+                      num: "02",
+                      title: "Deposit & Claimed Deductions",
+                      subtitle: "Painting, cleaning, fixtures & bills",
+                    },
+                    {
+                      step: 3 as const,
+                      num: "03",
+                      title: "Statutory Declaration",
+                      subtitle: "Sec 12 legal wear & tear audit",
+                    },
+                  ].map((s) => {
+                    const isCurrent = intakeStep === s.step;
+                    const isDone = intakeStep > s.step;
+                    return (
+                      <button
+                        key={s.step}
+                        type="button"
+                        onClick={() => setIntakeStep(s.step)}
+                        className={`text-left p-3 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
+                          isCurrent
+                            ? isDark
+                              ? "bg-emerald-500/15 border-emerald-500/60 shadow-md"
+                              : "bg-emerald-50 border-emerald-400 shadow-md"
+                            : isDone
+                            ? isDark
+                              ? "bg-[#141212] border-emerald-500/30 opacity-90"
+                              : "bg-white border-emerald-300 opacity-90"
+                            : isDark
+                            ? "bg-[#141212] border-[#2E2A2A] opacity-60 hover:opacity-80"
+                            : "bg-white border-[#E0DDDD] opacity-60 hover:opacity-80"
+                        }`}
+                      >
+                        <div
+                          className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shrink-0 ${
+                            isCurrent
+                              ? "bg-emerald-500 text-slate-950 font-black shadow-sm"
+                              : isDone
+                              ? "bg-emerald-500/30 text-emerald-400 font-black"
+                              : "bg-white/10 text-white/70"
+                          }`}
+                        >
+                          {isDone ? <Check className="w-4 h-4 stroke-[3]" /> : s.num}
+                        </div>
+                        <div className="overflow-hidden">
+                          <div className="text-xs font-black truncate flex items-center gap-1.5">
+                            <span className={isCurrent ? "text-emerald-400" : ""}>Step {s.step}: {s.title}</span>
+                          </div>
+                          <div className="text-[10px] opacity-60 truncate">{s.subtitle}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 ${
-                    isDark
-                      ? "bg-[#222020] border-[#3A3535] text-[#E0DDDD] hover:bg-[#2D2A2A]"
-                      : "bg-white border-[#D6D1D1] text-[#1E1B1B] hover:bg-[#ECE9E9] shadow-sm"
+              {/* Form Body Form Container */}
+              <form onSubmit={handleCreateDisputeCase} className="space-y-6">
+                {/* SECTION A: Tenancy & Locality Details */}
+                <div
+                  className={`rounded-3xl p-5 sm:p-6 border shadow-lg space-y-4 transition-colors ${
+                    isDark ? "bg-[#1A1818] border-[#363232]" : "bg-white border-[#E0DDDD]"
                   }`}
                 >
-                  <Printer className="w-3.5 h-3.5" />
-                  Print / Save Deed
-                </button>
+                  <div className="flex items-center justify-between border-b pb-3 border-white/10">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center border border-emerald-500/30">
+                        A
+                      </span>
+                      <div>
+                        <div className="text-[10px] font-black uppercase text-emerald-400 tracking-wider">
+                          Section A • Jurisdiction & Tenancy
+                        </div>
+                        <h3 className={`text-lg font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                          Tenancy & Locality Details
+                        </h3>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold opacity-60 hidden sm:inline">
+                      Jurisdiction: Bengaluru Urban District
+                    </span>
+                  </div>
 
-                <button
-                  onClick={() => {
-                    confetti({
-                      particleCount: 160,
-                      spread: 100,
-                      origin: { y: 0.5 },
-                    });
-                    window.print();
-                  }}
-                  className="px-5 py-2 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition flex items-center gap-1.5 shadow-lg shadow-emerald-950/40"
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    {/* Tenant Name */}
+                    <div className="space-y-1.5">
+                      <label className="font-bold opacity-80 flex items-center gap-1">
+                        <User className="w-3.5 h-3.5 text-emerald-400" />
+                        Tenant Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formTenantName}
+                        onChange={(e) => setFormTenantName(e.target.value)}
+                        placeholder="e.g., Ananya Iyer"
+                        className={`w-full p-2.5 rounded-xl border font-bold text-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none transition ${
+                          isDark ? "bg-[#121111] border-[#363232] text-white" : "bg-[#F9F8F8] border-[#D6D1D1] text-black"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Tenant Phone */}
+                    <div className="space-y-1.5">
+                      <label className="font-bold opacity-80 flex items-center gap-1">
+                        <span>📱</span>
+                        Tenant Contact Phone *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={formTenantContact}
+                        onChange={(e) => setFormTenantContact(e.target.value)}
+                        placeholder="e.g., +91 98860 12456"
+                        className={`w-full p-2.5 rounded-xl border font-bold text-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none transition ${
+                          isDark ? "bg-[#121111] border-[#363232] text-white" : "bg-[#F9F8F8] border-[#D6D1D1] text-black"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Landlord Name */}
+                    <div className="space-y-1.5">
+                      <label className="font-bold opacity-80 flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+                        Landlord / Lessor Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formLandlordName}
+                        onChange={(e) => setFormLandlordName(e.target.value)}
+                        placeholder="e.g., K. V. Subhash"
+                        className={`w-full p-2.5 rounded-xl border font-bold text-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none transition ${
+                          isDark ? "bg-[#121111] border-[#363232] text-white" : "bg-[#F9F8F8] border-[#D6D1D1] text-black"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Landlord Notice Address / Contact */}
+                    <div className="space-y-1.5">
+                      <label className="font-bold opacity-80 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                        Landlord Notice Address & Phone *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formLandlordAddress}
+                        onChange={(e) => setFormLandlordAddress(e.target.value)}
+                        placeholder="e.g., Flat 804, Tower 12, Sobha Dream Acres / +91 94481 65432"
+                        className={`w-full p-2.5 rounded-xl border font-bold text-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none transition ${
+                          isDark ? "bg-[#121111] border-[#363232] text-white" : "bg-[#F9F8F8] border-[#D6D1D1] text-black"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Property Locality Preset Dropdown */}
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <label className="font-bold opacity-80 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                        Property Locality (Bengaluru Housing Hubs) *
+                      </label>
+                      <select
+                        value={formAddressPreset}
+                        onChange={(e) => setFormAddressPreset(e.target.value)}
+                        className={`w-full p-2.5 rounded-xl border font-bold text-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none transition ${
+                          isDark ? "bg-[#121111] border-[#363232] text-white" : "bg-[#F9F8F8] border-[#D6D1D1] text-black"
+                        }`}
+                      >
+                        {BANGALORE_ADDRESS_PRESETS.map((preset) => (
+                          <option key={preset} value={preset} className={isDark ? "bg-[#1C1A1A] text-white" : "bg-white text-black"}>
+                            {preset}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Custom Address entry if selected */}
+                    {formAddressPreset === "Custom Address..." && (
+                      <div className="sm:col-span-2 space-y-1.5">
+                        <label className="font-bold text-emerald-400">Custom Property Address & Flat Details *</label>
+                        <input
+                          type="text"
+                          required
+                          value={formCustomAddress}
+                          onChange={(e) => setFormCustomAddress(e.target.value)}
+                          placeholder="e.g., Flat 204, Brigade Gateway, Malleshwaram, Bengaluru - 560055"
+                          className={`w-full p-2.5 rounded-xl border font-bold text-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none transition ${
+                            isDark ? "bg-[#121111] border-[#363232] text-white" : "bg-[#F9F8F8] border-[#D6D1D1] text-black"
+                          }`}
+                        />
+                      </div>
+                    )}
+
+                    {/* Tenancy Tenure: Start Date & Vacating Date */}
+                    <div className="space-y-1.5">
+                      <label className="font-bold opacity-80">Tenancy Agreement Start Date *</label>
+                      <input
+                        type="date"
+                        required
+                        value={formStartDate}
+                        onChange={(e) => setFormStartDate(e.target.value)}
+                        className={`w-full p-2.5 rounded-xl border font-bold text-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none transition ${
+                          isDark ? "bg-[#121111] border-[#363232] text-white" : "bg-[#F9F8F8] border-[#D6D1D1] text-black"
+                        }`}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-bold opacity-80">Agreed Vacating / Key Handover Date *</label>
+                      <input
+                        type="date"
+                        required
+                        value={formVacatingDate}
+                        onChange={(e) => setFormVacatingDate(e.target.value)}
+                        className={`w-full p-2.5 rounded-xl border font-bold text-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none transition ${
+                          isDark ? "bg-[#121111] border-[#363232] text-white" : "bg-[#F9F8F8] border-[#D6D1D1] text-black"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Total Security Deposit Paid & Monthly Rent */}
+                    <div className="space-y-1.5">
+                      <label className="font-bold text-emerald-400 flex items-center justify-between">
+                        <span>Total Security Deposit Paid (₹) *</span>
+                        <span className="text-[10px] font-mono opacity-70">Escrow Baseline</span>
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={1000}
+                        value={formDepositAmount}
+                        onChange={(e) => setFormDepositAmount(Number(e.target.value))}
+                        className={`w-full p-2.5 rounded-xl border font-black text-sm text-emerald-400 focus:ring-2 focus:ring-emerald-400 focus:outline-none transition ${
+                          isDark ? "bg-[#121111] border-[#363232]" : "bg-[#F9F8F8] border-[#D6D1D1]"
+                        }`}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-bold opacity-80 flex items-center justify-between">
+                        <span>Monthly Rent (₹) *</span>
+                        <span className="text-[10px] font-mono opacity-70">Sec 12 MTA Ratio</span>
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={1000}
+                        value={formMonthlyRent}
+                        onChange={(e) => setFormMonthlyRent(Number(e.target.value))}
+                        className={`w-full p-2.5 rounded-xl border font-bold text-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none transition ${
+                          isDark ? "bg-[#121111] border-[#363232] text-white" : "bg-[#F9F8F8] border-[#D6D1D1] text-black"
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION B: Deductions Disputed (Itemized Legal Claims) */}
+                <div
+                  className={`rounded-3xl p-5 sm:p-6 border shadow-lg space-y-4 transition-colors ${
+                    isDark ? "bg-[#1A1818] border-[#363232]" : "bg-white border-[#E0DDDD]"
+                  }`}
                 >
-                  <Download className="w-3.5 h-3.5" />
-                  Download Executed Settlement PDF
-                </button>
-              </div>
-            </div>
-          </div>
-        </motion.section>
+                  <div className="flex items-center justify-between border-b pb-3 border-white/10">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center border border-emerald-500/30">
+                        B
+                      </span>
+                      <div>
+                        <div className="text-[10px] font-black uppercase text-emerald-400 tracking-wider">
+                          Section B • Disputed Deductions Itemization
+                        </div>
+                        <h3 className={`text-lg font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                          Itemized Legal Claims Under Karnataka Rent Control
+                        </h3>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                      Algorithmic Audit Engine Active
+                    </span>
+                  </div>
+
+                  <p className="text-xs opacity-70 leading-relaxed">
+                    Enter the deduction heads claimed by the lessor. Settlr’s statutory engine automatically benchmarks each claim against the Karnataka Rent Control Section 12 wear-and-tear exemption, 10% depreciation cap, and ₹4,500 deep-cleaning ceiling.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                    {/* 1. Painting Claim */}
+                    <div className={`p-3.5 rounded-2xl border space-y-2 ${isDark ? "bg-[#121111] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-[11px] uppercase">1. Painting & Wall Restoration</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded font-black bg-rose-500/20 text-rose-400">Sec 12</span>
+                      </div>
+                      <input
+                        type="number"
+                        min={0}
+                        value={formPaintingClaimed}
+                        onChange={(e) => setFormPaintingClaimed(Number(e.target.value))}
+                        className={`w-full p-2 rounded-xl border font-black text-sm text-rose-400 focus:outline-none ${
+                          isDark ? "bg-[#1A1818] border-[#363232]" : "bg-white border-[#D6D1D1]"
+                        }`}
+                      />
+                      <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Sec 12 Cap: ₹0 (Zero-Out)
+                      </div>
+                    </div>
+
+                    {/* 2. Deep Cleaning Claim */}
+                    <div className={`p-3.5 rounded-2xl border space-y-2 ${isDark ? "bg-[#121111] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-[11px] uppercase">2. Deep Cleaning & Sanitization</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded font-black bg-emerald-500/20 text-emerald-400">Ceiling</span>
+                      </div>
+                      <input
+                        type="number"
+                        min={0}
+                        value={formCleaningClaimed}
+                        onChange={(e) => setFormCleaningClaimed(Number(e.target.value))}
+                        className={`w-full p-2 rounded-xl border font-black text-sm text-rose-400 focus:outline-none ${
+                          isDark ? "bg-[#1A1818] border-[#363232]" : "bg-white border-[#D6D1D1]"
+                        }`}
+                      />
+                      <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Bengaluru Cap: ₹4,500
+                      </div>
+                    </div>
+
+                    {/* 3. Fixture Damage Claim */}
+                    <div className={`p-3.5 rounded-2xl border space-y-2 ${isDark ? "bg-[#121111] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-[11px] uppercase">3. Fixture / Appliance Damage</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded font-black bg-amber-500/20 text-amber-400">-10% Depr</span>
+                      </div>
+                      <input
+                        type="number"
+                        min={0}
+                        value={formFixtureClaimed}
+                        onChange={(e) => setFormFixtureClaimed(Number(e.target.value))}
+                        className={`w-full p-2 rounded-xl border font-black text-sm text-rose-400 focus:outline-none ${
+                          isDark ? "bg-[#1A1818] border-[#363232]" : "bg-white border-[#D6D1D1]"
+                        }`}
+                      />
+                      <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Depreciated: ₹{Math.round(formFixtureClaimed * 0.9).toLocaleString("en-IN")}
+                      </div>
+                    </div>
+
+                    {/* 4. Utility Claim */}
+                    <div className={`p-3.5 rounded-2xl border space-y-2 ${isDark ? "bg-[#121111] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-[11px] uppercase">4. Unpaid Utility / BESCOM Dues</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded font-black bg-emerald-500/20 text-emerald-400">Actuals</span>
+                      </div>
+                      <input
+                        type="number"
+                        min={0}
+                        value={formUtilityClaimed}
+                        onChange={(e) => setFormUtilityClaimed(Number(e.target.value))}
+                        className={`w-full p-2 rounded-xl border font-black text-sm text-rose-400 focus:outline-none ${
+                          isDark ? "bg-[#1A1818] border-[#363232]" : "bg-white border-[#D6D1D1]"
+                        }`}
+                      />
+                      <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Approved: ₹{Number(formUtilityClaimed).toLocaleString("en-IN")}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Live Statutory Calculation HUD */}
+                  {(() => {
+                    const paintClaim = Number(formPaintingClaimed) || 0;
+                    const cleanClaim = Number(formCleaningClaimed) || 0;
+                    const fixClaim = Number(formFixtureClaimed) || 0;
+                    const utilClaim = Number(formUtilityClaimed) || 0;
+
+                    const paintAllow = 0;
+                    const cleanAllow = Math.min(cleanClaim, 4500);
+                    const fixAllow = Math.round(fixClaim * 0.9);
+                    const utilAllow = utilClaim;
+
+                    const totClaim = paintClaim + cleanClaim + fixClaim + utilClaim;
+                    const totAllow = paintAllow + cleanAllow + fixAllow + utilAllow;
+                    const slashed = Math.max(0, totClaim - totAllow);
+                    const depAmt = Number(formDepositAmount) || 0;
+                    const netRef = Math.max(0, depAmt - totAllow);
+
+                    return (
+                      <div className={`p-4 rounded-2xl border ${
+                        isDark ? "bg-[#131F18] border-emerald-500/30" : "bg-emerald-50 border-emerald-300"
+                      }`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-emerald-400 tracking-wider flex items-center gap-1">
+                              <Scale className="w-3.5 h-3.5" /> Live Statutory Impact Projection
+                            </span>
+                            <div className="font-extrabold text-sm sm:text-base mt-0.5">
+                              Landlord Claims ₹{totClaim.toLocaleString("en-IN")} → Permitted ₹{totAllow.toLocaleString("en-IN")}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <div className="text-[10px] opacity-70 uppercase font-bold">Unlawful Slashed</div>
+                              <div className="text-sm font-black text-rose-400">
+                                (-) ₹{slashed.toLocaleString("en-IN")}
+                              </div>
+                            </div>
+
+                            <div className="h-8 w-px bg-white/10" />
+
+                            <div className="text-right">
+                              <div className="text-[10px] text-emerald-400 uppercase font-bold">Projected Net Refund</div>
+                              <div className="text-base sm:text-lg font-black text-emerald-400">
+                                ₹{netRef.toLocaleString("en-IN")}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* SECTION C: Legal Declarations & Statutory Checklist */}
+                <div
+                  className={`rounded-3xl p-5 sm:p-6 border shadow-lg space-y-4 transition-colors ${
+                    isDark ? "bg-[#1A1818] border-[#363232]" : "bg-white border-[#E0DDDD]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between border-b pb-3 border-white/10">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center border border-emerald-500/30">
+                        C
+                      </span>
+                      <div>
+                        <div className="text-[10px] font-black uppercase text-emerald-400 tracking-wider">
+                          Section C • Statutory Checklist & Consent
+                        </div>
+                        <h3 className={`text-lg font-black tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                          Legal Declarations & ODR Mediation Agreement
+                        </h3>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold opacity-60 hidden sm:inline">
+                      Sec 89 CPC Compliant
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <label className={`p-3.5 rounded-2xl border flex items-start gap-3 cursor-pointer transition ${
+                      declHandoverKeys
+                        ? isDark ? "bg-emerald-500/10 border-emerald-500/50" : "bg-emerald-50 border-emerald-300"
+                        : isDark ? "bg-[#141212] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={declHandoverKeys}
+                        onChange={(e) => setDeclHandoverKeys(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 accent-emerald-500 cursor-pointer"
+                      />
+                      <div>
+                        <strong className="block font-black text-sm mb-0.5">Physical Vacating & Key Handover Confirmation</strong>
+                        <span className="opacity-75 leading-relaxed text-[11px]">
+                          I confirm the property was handed over with keys on the agreed vacating date ({formVacatingDate}) with move-out inspection photographic record.
+                        </span>
+                      </div>
+                    </label>
+
+                    <label className={`p-3.5 rounded-2xl border flex items-start gap-3 cursor-pointer transition ${
+                      declSec12WearAndTear
+                        ? isDark ? "bg-emerald-500/10 border-emerald-500/50" : "bg-emerald-50 border-emerald-300"
+                        : isDark ? "bg-[#141212] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"
+                    }`}>
+                      <input
+                        type="checkbox"
+                        required
+                        checked={declSec12WearAndTear}
+                        onChange={(e) => setDeclSec12WearAndTear(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 accent-emerald-500 cursor-pointer"
+                      />
+                      <div>
+                        <strong className="block font-black text-sm mb-0.5 text-emerald-400">Invocation of Karnataka Rent Control Act Section 12</strong>
+                        <span className="opacity-75 leading-relaxed text-[11px]">
+                          I invoke Karnataka Rent Control Act Section 12 for normal wear-and-tear assessment, zero-out of customary painting clauses, and 10% statutory straight-line fixture depreciation.
+                        </span>
+                      </div>
+                    </label>
+
+                    <label className={`p-3.5 rounded-2xl border flex items-start gap-3 cursor-pointer transition ${
+                      declAlgorithmicODR
+                        ? isDark ? "bg-emerald-500/10 border-emerald-500/50" : "bg-emerald-50 border-emerald-300"
+                        : isDark ? "bg-[#141212] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"
+                    }`}>
+                      <input
+                        type="checkbox"
+                        required
+                        checked={declAlgorithmicODR}
+                        onChange={(e) => setDeclAlgorithmicODR(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 accent-emerald-500 cursor-pointer"
+                      />
+                      <div>
+                        <strong className="block font-black text-sm mb-0.5">3-Round Algorithmic Conciliation Accord Consent</strong>
+                        <span className="opacity-75 leading-relaxed text-[11px]">
+                          I consent to binding 3-round algorithmic mediation prior to Lok Adalat / Rent Court escalation, culminating in an enforceable e-Stamp Deed of Settlement under Sec 89 CPC.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Form Action & Submit Bar */}
+                <div
+                  className={`p-5 rounded-3xl border shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
+                    isDark ? "bg-[#1C1A1A] border-[#363232]" : "bg-white border-[#E0DDDD]"
+                  }`}
+                >
+                  <div className="space-y-1">
+                    <div className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
+                      <Shield className="w-4 h-4" /> Ready for Statutory ODR Verification
+                    </div>
+                    <div className="text-[11px] opacity-70">
+                      Dispute intake will immediately apply Karnataka Sec 12 deductions and open the Case Dashboard.
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveView("dashboard");
+                        document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                        isDark ? "border-[#3A3535] text-[#A8A3A3] hover:text-white" : "border-[#D6D1D1] text-[#5E5959] hover:text-black"
+                      }`}
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs sm:text-sm transition-all shadow-xl shadow-emerald-500/25 flex items-center gap-2 cursor-pointer hover:scale-[1.02]"
+                    >
+                      <Play className="w-4 h-4 fill-current stroke-none" />
+                      <span>Submit & Run Statutory Audit Engine</span>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
+      </div>
 
       {/* ═══════════════════════════════════════════════════════════
           FOOTER
       ═══════════════════════════════════════════════════════════ */}
       <footer
-        className={`border-t py-8 mt-16 text-center text-xs transition-colors ${
+        className={`border-t py-6 mt-12 text-center text-xs transition-colors ${
           isDark ? "border-[#2D2929] text-[#7A7575]" : "border-[#E0DDDD] text-[#7A7575]"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 space-y-2">
+        <div className="max-w-7xl mx-auto px-4 space-y-1">
           <div className="flex items-center justify-center gap-2 font-bold text-[#E0DDDD]">
-            <Scale className="w-4 h-4 text-emerald-400" /> Settlr ODR • Karnataka Tenancy Conciliation Portal
+            <Scale className="w-3.5 h-3.5 text-emerald-400" /> Settlr ODR • Karnataka Tenancy Conciliation Portal
           </div>
-          <p className="opacity-70">
+          <p className="opacity-70 text-[11px]">
             Compliant with Karnataka Rent Control Act, 1999 • Model Tenancy Act (MTA) • Code of Civil Procedure, 1908 (Sec 89)
           </p>
-          <div className="text-[10px] opacity-50">
-            Case #BLR-2026-8941 • Prestige Shantiniketan, Whitefield, Bengaluru
-          </div>
         </div>
       </footer>
     </div>
