@@ -472,6 +472,9 @@ export default function SettlrODRPage() {
   const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  /* ─── STANDALONE WELCOME SCREEN STATE ─── */
+  const [hasStarted, setHasStarted] = useState<boolean>(false);
+
   // Form 1-A Legal Intake & Filing Fields
   const [formTenantName, setFormTenantName] = useState("Ananya Iyer");
   const [formTenantContact, setFormTenantContact] = useState("+91 98860 12456");
@@ -678,6 +681,7 @@ export default function SettlrODRPage() {
 
   /* ─── QUICK TRIGGER 2: FAST-FORWARD SETTLEMENT ─── */
   const handleFastForward = () => {
+    setHasStarted(true);
     updateMaxUnlockedStep(5);
     setAuditState("completed");
     const updatedClaims = claims.map((c) => ({
@@ -711,6 +715,7 @@ export default function SettlrODRPage() {
 
   /* ─── QUICK TRIGGER 3: 1-CLICK PITCH DEMO ─── */
   const runPitchDemo = () => {
+    setHasStarted(true);
     setIsDemoUnlocked(true);
     updateMaxUnlockedStep(5);
     setIsPitching(true);
@@ -1050,202 +1055,295 @@ export default function SettlrODRPage() {
         )}
       </AnimatePresence>
       {/* ═══════════════════════════════════════════════════════════
-          FULL-SCREEN WELCOME HERO SECTION (LEGAL-TECH AESTHETIC)
+          STANDALONE WELCOME SCREEN / FULL DISPUTE APP TOGGLE
       ═══════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-[92vh] sm:min-h-screen flex flex-col justify-between p-4 sm:p-8 overflow-hidden border-b border-white/10">
-        {/* Ambient Gradient Glows */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-emerald-500/15 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute bottom-10 right-10 w-80 h-80 bg-teal-500/10 rounded-full blur-[120px] pointer-events-none" />
-
-        {/* Hero Top Bar */}
-        <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-4 pt-2 relative z-10">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/30">
-              <Gavel className="w-5 h-5 stroke-[2.4]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className={`font-black text-lg sm:text-xl tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
-                  Settlr ODR
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                  Karnataka GovTech
-                </span>
-              </div>
-              <div className="text-[11px] opacity-70 hidden sm:block">
-                Online Tenancy Dispute Conciliation Portal
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <span className="text-xs font-bold opacity-60 hidden md:inline font-mono">
-              Sec 89 CPC • Model Tenancy Act
-            </span>
-            <button
-              onClick={() => setTheme(isDark ? "light" : "dark")}
-              className={`p-2 rounded-xl border transition-all text-xs font-bold ${
-                isDark
-                  ? "bg-[#222020] border-[#3A3535] text-emerald-400 hover:bg-[#2B2727]"
-                  : "bg-[#EAE7E7] border-[#D6D1D1] text-emerald-700 hover:bg-[#E0DDDD]"
-              }`}
-              title="Toggle Light/Dark Theme"
-            >
-              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Hero Center Content */}
-        <div className="max-w-5xl mx-auto w-full text-center my-auto py-10 sm:py-16 space-y-6 relative z-10">
-          {/* Badge */}
+      <AnimatePresence mode="wait">
+        {!hasStarted ? (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs sm:text-sm font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-950/20"
+            key="standalone-welcome-screen"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="relative min-h-screen flex flex-col justify-between p-4 sm:p-8 overflow-hidden"
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-            Karnataka Rent Control Act Compliant • Bengaluru ODR Portal
-          </motion.div>
+            {/* Ambient Gradient Glows */}
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[360px] bg-emerald-500/15 rounded-full blur-[150px] pointer-events-none" />
+            <div className="absolute bottom-10 right-10 w-96 h-96 bg-teal-500/10 rounded-full blur-[130px] pointer-events-none" />
 
-          {/* Title */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className={`text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.15] max-w-4xl mx-auto ${
-              isDark ? "text-white" : "text-[#1E1B1B]"
-            }`}
-          >
-            Fair, Fast & Algorithmic Security Deposit Resolution
-          </motion.h1>
-
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-sm sm:text-lg opacity-80 max-w-3xl mx-auto leading-relaxed"
-          >
-            Resolve Bengaluru tenancy deposit disputes within minutes using statutory deductions under Karnataka Rent Control Section 12, automated wear-and-tear audits, and algorithmic 3-round negotiation.
-          </motion.p>
-
-          {/* Quick Stat Pills / Highlights */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 pt-2"
-          >
-            <div
-              className={`px-4 py-2 rounded-2xl border text-xs sm:text-sm font-black flex items-center gap-2 shadow-sm ${
-                isDark ? "bg-[#1C1A1A] border-[#363232] text-[#E0DDDD]" : "bg-white border-[#E0DDDD] text-[#1E1B1B]"
-              }`}
-            >
-              <span>⚡ Avg. Resolution: &lt; 48 Hours</span>
-            </div>
-            <div
-              className={`px-4 py-2 rounded-2xl border text-xs sm:text-sm font-black flex items-center gap-2 shadow-sm ${
-                isDark ? "bg-[#1C1A1A] border-[#363232] text-[#E0DDDD]" : "bg-white border-[#E0DDDD] text-[#1E1B1B]"
-              }`}
-            >
-              <span>⚖️ Karnataka Sec 12 Guardrails</span>
-            </div>
-            <div
-              className={`px-4 py-2 rounded-2xl border text-xs sm:text-sm font-black flex items-center gap-2 shadow-sm ${
-                isDark ? "bg-[#1C1A1A] border-[#363232] text-[#E0DDDD]" : "bg-white border-[#E0DDDD] text-[#1E1B1B]"
-              }`}
-            >
-              <span>📄 Legally Binding Settlement Deeds</span>
-            </div>
-          </motion.div>
-
-          {/* Primary Call-To-Action Button */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4"
-          >
-            <button
-              onClick={() => document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" })}
-              className="group px-7 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm sm:text-base transition-all shadow-xl shadow-emerald-500/25 flex items-center gap-2.5 animate-pulse hover:animate-none hover:scale-105 cursor-pointer"
-            >
-              <span>Launch Active Dispute (Case #{activeCase.id}) ↓</span>
-            </button>
-
-            <button
-              onClick={() => {
-                document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" });
-                setTimeout(() => runPitchDemo(), 600);
-              }}
-              className={`px-5 py-3.5 sm:py-4 rounded-2xl border text-xs sm:text-sm font-black transition flex items-center gap-2 cursor-pointer ${
-                isDark
-                  ? "bg-[#1C1A1A] border-[#3D3838] hover:bg-[#252222] text-[#E0DDDD]"
-                  : "bg-white border-[#D6D1D1] hover:bg-[#F4F2F2] text-[#1E1B1B] shadow-sm"
-              }`}
-            >
-              <Award className="w-4 h-4 text-emerald-400" />
-              <span>30-Sec Judge Pitch Demo</span>
-            </button>
-          </motion.div>
-        </div>
-
-        {/* Downward Scroll Indicator */}
-        <div className="text-center pb-2 relative z-10">
-          <button
-            onClick={() => document.getElementById("dispute-dashboard")?.scrollIntoView({ behavior: "smooth" })}
-            className="inline-flex flex-col items-center gap-1 opacity-70 hover:opacity-100 transition text-xs font-bold cursor-pointer"
-          >
-            <span>Scroll to Dispute War Room</span>
-            <ChevronDown className="w-5 h-5 animate-bounce text-emerald-400" />
-          </button>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════
-          TARGET CONTAINER: DISPUTE DASHBOARD
-      ═══════════════════════════════════════════════════════════ */}
-      <div id="dispute-dashboard" className="scroll-mt-0">
-        {/* STICKY TOP HUD & NAVIGATION BAR */}
-        <header
-          className={`sticky top-0 z-50 backdrop-blur-md border-b transition-colors ${
-            isDark
-              ? "bg-[#161414]/90 border-[#2D2929] shadow-lg shadow-black/40"
-              : "bg-white/90 border-[#E0DDDD] shadow-sm"
-          }`}
-        >
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-3">
-          {/* Brand & Drawer Trigger */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className={`p-1.5 rounded-xl border transition-all flex items-center justify-center ${
-                isDark
-                  ? "bg-[#222020] border-[#3A3535] text-[#E0DDDD] hover:bg-[#2D2A2A] hover:text-emerald-400"
-                  : "bg-[#EAE7E7] border-[#D6D1D1] text-[#2E2A2A] hover:bg-[#E0DDDD] hover:text-emerald-700"
-              }`}
-              title="Open Navigation Menu"
-            >
-              <Menu className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md">
-                <Gavel className="w-4 h-4 stroke-[2.4]" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className={`font-black text-lg tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
-                    Settlr ODR
-                  </span>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                    Karnataka
-                  </span>
+            {/* Standalone Top Bar */}
+            <div className="max-w-6xl mx-auto w-full flex items-center justify-between gap-4 pt-2 relative z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/30">
+                  <Gavel className="w-5 h-5 stroke-[2.4]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-black text-lg sm:text-xl tracking-tight ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                      Settlr ODR
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                      Karnataka GovTech
+                    </span>
+                  </div>
+                  <div className="text-[11px] opacity-70 hidden sm:block">
+                    Online Tenancy Dispute Conciliation Portal
+                  </div>
                 </div>
               </div>
+
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold opacity-60 hidden md:inline font-mono">
+                  Sec 89 CPC • Model Tenancy Act
+                </span>
+                <button
+                  onClick={() => setTheme(isDark ? "light" : "dark")}
+                  className={`p-2 rounded-xl border transition-all text-xs font-bold cursor-pointer ${
+                    isDark
+                      ? "bg-[#222020] border-[#3A3535] text-emerald-400 hover:bg-[#2B2727]"
+                      : "bg-[#EAE7E7] border-[#D6D1D1] text-emerald-700 hover:bg-[#E0DDDD]"
+                  }`}
+                  title="Toggle Light/Dark Theme"
+                >
+                  {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
+
+            {/* Standalone Center Hero Content */}
+            <div className="max-w-4xl mx-auto w-full text-center my-auto py-10 sm:py-16 space-y-6 relative z-10">
+              {/* Badge */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs sm:text-sm font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-950/20"
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                Karnataka Rent Control Act Compliant • Bengaluru Tenancy ODR
+              </motion.div>
+
+              {/* Main Title */}
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className={`text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] max-w-4xl mx-auto ${
+                  isDark ? "text-white" : "text-[#1E1B1B]"
+                }`}
+              >
+                Fair, Fast & Algorithmic Security Deposit Resolution
+              </motion.h1>
+
+              {/* Subtitle */}
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="text-sm sm:text-lg opacity-85 max-w-3xl mx-auto leading-relaxed"
+              >
+                End Bengaluru rental deposit disputes in under 48 hours. Enforce Karnataka Section 12 statutory guardrails against arbitrary painting deductions, run automated wear-and-tear audits, and resolve claims via 3-round algorithmic mediation.
+              </motion.p>
+
+              {/* 3 Feature Cards/Pills */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 max-w-4xl mx-auto pt-4 text-left"
+              >
+                {/* Feature 1 */}
+                <div
+                  className={`p-4 sm:p-5 rounded-2xl border transition-all shadow-md flex flex-col justify-between ${
+                    isDark
+                      ? "bg-[#1A1818] border-[#363232] hover:border-emerald-500/40"
+                      : "bg-white border-[#E0DDDD] hover:border-emerald-400 shadow-sm"
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xl">⚖️</span>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Statutory Rule 12
+                      </span>
+                    </div>
+                    <h3 className={`font-black text-sm sm:text-base ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                      Karnataka Sec 12 Rules
+                    </h3>
+                    <p className="text-xs opacity-75 leading-relaxed">
+                      Painting deductions slashed to ₹0 & cleaning charges capped at Bengaluru benchmark ceilings.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Feature 2 */}
+                <div
+                  className={`p-4 sm:p-5 rounded-2xl border transition-all shadow-md flex flex-col justify-between ${
+                    isDark
+                      ? "bg-[#1A1818] border-[#363232] hover:border-emerald-500/40"
+                      : "bg-white border-[#E0DDDD] hover:border-emerald-400 shadow-sm"
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xl">⚡</span>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        Convergence
+                      </span>
+                    </div>
+                    <h3 className={`font-black text-sm sm:text-base ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                      3-Round Negotiation
+                    </h3>
+                    <p className="text-xs opacity-75 leading-relaxed">
+                      Algorithmic convergence gap tracker that settles deposit disputes fast without litigation.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Feature 3 */}
+                <div
+                  className={`p-4 sm:p-5 rounded-2xl border transition-all shadow-md flex flex-col justify-between ${
+                    isDark
+                      ? "bg-[#1A1818] border-[#363232] hover:border-emerald-500/40"
+                      : "bg-white border-[#E0DDDD] hover:border-emerald-400 shadow-sm"
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xl">📄</span>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                        Sec 89 CPC
+                      </span>
+                    </div>
+                    <h3 className={`font-black text-sm sm:text-base ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                      Form 4 Settlement
+                    </h3>
+                    <p className="text-xs opacity-75 leading-relaxed">
+                      Generates an enforceable, stamp-duty styled legal deed recognized under Civil Procedure Code.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Primary Call-To-Action Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.4 }}
+                className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-3.5"
+              >
+                <button
+                  onClick={() => {
+                    setHasStarted(true);
+                    setActiveView("dashboard");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="group px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm sm:text-base transition-all shadow-2xl shadow-emerald-500/30 flex items-center gap-3 hover:scale-105 cursor-pointer ring-2 ring-emerald-400/40 hover:ring-emerald-400"
+                >
+                  <span>Let's Go! Launch Dispute Resolution</span>
+                  <ArrowRight className="w-4 h-4 stroke-[3] group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setHasStarted(true);
+                    setTimeout(() => runPitchDemo(), 300);
+                  }}
+                  className={`px-6 py-4 rounded-2xl border text-xs sm:text-sm font-black transition flex items-center gap-2 cursor-pointer ${
+                    isDark
+                      ? "bg-[#1E1C1C] border-[#3D3838] hover:bg-[#282424] text-[#E0DDDD]"
+                      : "bg-white border-[#D6D1D1] hover:bg-[#F4F2F2] text-[#1E1B1B] shadow-sm"
+                  }`}
+                >
+                  <Award className="w-4 h-4 text-emerald-400" />
+                  <span>30-Sec Judge Pitch Demo</span>
+                </button>
+              </motion.div>
+            </div>
+
+            {/* Standalone Footer */}
+            <div className="text-center py-5 relative z-10 border-t border-white/10 max-w-5xl mx-auto w-full text-[11px] opacity-70 flex flex-col sm:flex-row items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Section 89 CPC & Karnataka Rent Control Act, 1999 Compliant ODR Framework</span>
+              </div>
+              <span>Bengaluru Tenancy Dispute Resolution Portal • Case #{activeCase.id} Ready</span>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="active-dispute-app"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* ═══════════════════════════════════════════════════════════
+                TARGET CONTAINER: DISPUTE DASHBOARD
+            ═══════════════════════════════════════════════════════════ */}
+            <div id="dispute-dashboard" className="scroll-mt-0">
+              {/* STICKY TOP HUD & NAVIGATION BAR */}
+              <header
+                className={`sticky top-0 z-50 backdrop-blur-md border-b transition-colors ${
+                  isDark
+                    ? "bg-[#161414]/90 border-[#2D2929] shadow-lg shadow-black/40"
+                    : "bg-white/90 border-[#E0DDDD] shadow-sm"
+                }`}
+              >
+              <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-3">
+                {/* Brand, Home Return & Drawer Trigger */}
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <button
+                    onClick={() => setIsSidebarOpen(true)}
+                    className={`p-1.5 rounded-xl border transition-all flex items-center justify-center ${
+                      isDark
+                        ? "bg-[#222020] border-[#3A3535] text-[#E0DDDD] hover:bg-[#2D2A2A] hover:text-emerald-400"
+                        : "bg-[#EAE7E7] border-[#D6D1D1] text-[#2E2A2A] hover:bg-[#E0DDDD] hover:text-emerald-700"
+                    }`}
+                    title="Open Navigation Menu"
+                  >
+                    <Menu className="w-4 h-4" />
+                  </button>
+
+                  {/* Return to Home / Landing */}
+                  <button
+                    onClick={() => {
+                      setHasStarted(false);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className={`px-2.5 py-1.5 rounded-xl border text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+                      isDark
+                        ? "bg-[#222020] border-[#3A3535] text-[#A8A3A3] hover:text-white hover:border-neutral-500"
+                        : "bg-white border-[#D6D1D1] text-[#5E5959] hover:text-black"
+                    }`}
+                    title="Return to Welcome Screen"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Home</span>
+                  </button>
+
+                  <div
+                    onClick={() => {
+                      setHasStarted(false);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="flex items-center gap-2 cursor-pointer group"
+                    title="Return to Welcome Screen"
+                  >
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
+                      <Gavel className="w-4 h-4 stroke-[2.4]" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-black text-lg tracking-tight group-hover:text-emerald-400 transition-colors ${isDark ? "text-white" : "text-[#1E1B1B]"}`}>
+                          Settlr ODR
+                        </span>
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                          Karnataka
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
             {/* Quick Case Switcher Pill */}
             <div className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-bold ${
@@ -1629,6 +1727,23 @@ export default function SettlrODRPage() {
                     {activeCase.address}
                   </p>
                 </div>
+
+                {/* Return to Welcome Screen button */}
+                <button
+                  onClick={() => {
+                    setIsSidebarOpen(false);
+                    setHasStarted(false);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                    isDark
+                      ? "bg-[#222020] border-[#3A3535] text-[#A8A3A3] hover:text-white hover:border-neutral-500"
+                      : "bg-white border-[#D6D1D1] text-[#5E5959] hover:text-black"
+                  }`}
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Return to Welcome Screen</span>
+                </button>
 
                 {/* File New Dispute Trigger in Drawer */}
                 <button
@@ -3532,6 +3647,11 @@ export default function SettlrODRPage() {
           </p>
         </div>
       </footer>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
+
