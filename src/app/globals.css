@@ -24,3 +24,96 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   PRINT-SPECIFIC CSS FOR LEGAL DEED OUTPUT
+═══════════════════════════════════════════════════════════ */
+@media print {
+  @page {
+    margin: 12mm;
+    size: A4 portrait;
+  }
+
+  *, *::before, *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide headers, footers, steppers, buttons, dialogs */
+  header,
+  nav,
+  footer,
+  aside,
+  button,
+  .no-print,
+  .print\:hidden,
+  [data-no-print="true"] {
+    display: none !important;
+  }
+
+  /* Reset outer wrappers */
+  #dispute-dashboard,
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Printable deed card container */
+  #printable-deed {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 24px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+  }
+
+  #printable-deed * {
+    color: #000000 !important;
+  }
+
+  #printable-deed .stamp-header {
+    background-color: #f0fdf4 !important;
+    border-bottom: 2px solid #86efac !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  #printable-deed .stamp-header * {
+    color: #14532d !important;
+  }
+
+  #printable-deed .party-card,
+  #printable-deed .audit-card,
+  #printable-deed .signature-card {
+    background-color: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print\:break-inside-avoid,
+  .print-break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+

@@ -1032,8 +1032,86 @@ export default function SettlrODRPage() {
     <div
       className={`min-h-screen font-sans transition-colors duration-300 ${
         isDark ? "bg-[#121111] text-[#E0DDDD]" : "bg-[#F4F2F2] text-[#1E1B1B]"
-      }`}
+      } print:bg-white print:text-black`}
     >
+      {/* ─── PRINT-SPECIFIC CSS FOR LEGAL DEED OUTPUT ─── */}
+      <style>{`
+        @media print {
+          @page {
+            margin: 12mm;
+            size: A4 portrait;
+          }
+          body, html {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          header,
+          nav,
+          footer,
+          aside,
+          button,
+          .no-print,
+          .print\\:hidden,
+          [data-no-print="true"] {
+            display: none !important;
+          }
+          #dispute-dashboard,
+          main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+          }
+          #printable-deed {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            padding: 24px !important;
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            opacity: 1 !important;
+            filter: none !important;
+          }
+          #printable-deed * {
+            color: #000000 !important;
+            text-shadow: none !important;
+            box-shadow: none !important;
+          }
+          #printable-deed .stamp-header {
+            background-color: #f0fdf4 !important;
+            border-bottom: 2px solid #86efac !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          #printable-deed .stamp-header * {
+            color: #14532d !important;
+          }
+          #printable-deed .party-card,
+          #printable-deed .audit-card,
+          #printable-deed .signature-card {
+            background-color: #f9fafb !important;
+            border: 1px solid #e5e7eb !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .print-break-inside-avoid,
+          .print\\:break-inside-avoid {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+        }
+      `}</style>
+
       {/* ─── FLOATING TOAST NOTIFICATION BANNER ─── */}
       <AnimatePresence>
         {toastMessage && (
@@ -1041,7 +1119,7 @@ export default function SettlrODRPage() {
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-5 left-1/2 -translate-x-1/2 z-[120] px-5 py-3 rounded-2xl bg-emerald-500 text-slate-950 font-black text-xs shadow-2xl flex items-center gap-2.5 border border-emerald-300 shadow-emerald-950/50"
+            className="fixed top-5 left-1/2 -translate-x-1/2 z-[120] px-5 py-3 rounded-2xl bg-emerald-500 text-slate-950 font-black text-xs shadow-2xl flex items-center gap-2.5 border border-emerald-300 shadow-emerald-950/50 print:hidden"
           >
             <CheckCircle2 className="w-4 h-4 shrink-0 text-slate-950" />
             <span>{toastMessage}</span>
@@ -1065,7 +1143,7 @@ export default function SettlrODRPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="relative min-h-screen flex flex-col justify-between p-4 sm:p-8 overflow-hidden"
+            className="relative min-h-screen flex flex-col justify-between p-4 sm:p-8 overflow-hidden print:hidden"
           >
             {/* Ambient Gradient Glows */}
             <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[360px] bg-emerald-500/15 rounded-full blur-[150px] pointer-events-none" />
@@ -1284,7 +1362,7 @@ export default function SettlrODRPage() {
             <div id="dispute-dashboard" className="scroll-mt-0">
               {/* STICKY TOP HUD & NAVIGATION BAR */}
               <header
-                className={`sticky top-0 z-50 backdrop-blur-md border-b transition-colors ${
+                className={`sticky top-0 z-50 backdrop-blur-md border-b transition-colors print:hidden ${
                   isDark
                     ? "bg-[#161414]/90 border-[#2D2929] shadow-lg shadow-black/40"
                     : "bg-white/90 border-[#E0DDDD] shadow-sm"
@@ -1501,7 +1579,7 @@ export default function SettlrODRPage() {
 
         {/* ─── PERSPECTIVE CONTEXTUAL HINT ─── */}
         <div
-          className={`px-4 py-1.5 text-xs font-semibold border-t transition-colors ${
+          className={`px-4 py-1.5 text-xs font-semibold border-t transition-colors print:hidden ${
             perspective === "tenant"
               ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
               : perspective === "landlord"
@@ -1537,7 +1615,7 @@ export default function SettlrODRPage() {
         </div>
 
         {/* ─── 5-STEP PROGRESSIVE WORKFLOW STEPPER BAR ─── */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 print:hidden">
           <div
             className={`p-2 rounded-2xl border shadow-md transition-colors ${
               isDark ? "bg-[#181616] border-[#332F2F]" : "bg-white border-[#E0DDDD]"
@@ -1686,14 +1764,14 @@ export default function SettlrODRPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSidebarOpen(false)}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 print:hidden"
             />
             <motion.aside
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className={`fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-50 flex flex-col justify-between border-r shadow-2xl p-4 overflow-y-auto ${
+              className={`fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-50 flex flex-col justify-between border-r shadow-2xl p-4 overflow-y-auto print:hidden ${
                 isDark
                   ? "bg-[#1A1818] border-[#363232] text-[#E0DDDD]"
                   : "bg-white border-[#E0DDDD] text-[#1E1B1B]"
@@ -1954,7 +2032,7 @@ export default function SettlrODRPage() {
       ═══════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {previewEvidence && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 print:hidden">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -2014,7 +2092,7 @@ export default function SettlrODRPage() {
       {/* ═══════════════════════════════════════════════════════════
           MAIN CONTENT AREA (CONDITIONALLY RENDERS activeView)
       ═══════════════════════════════════════════════════════════ */}
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-6 space-y-6 print:max-w-none print:p-0 print:m-0 print:space-y-0">
         <AnimatePresence mode="wait">
           {/* ─────────────────────────────────────────────────────────
               VIEW 1: CASE DASHBOARD (INTAKE & DEDUCTIONS BREAKDOWN)
@@ -2774,9 +2852,9 @@ export default function SettlrODRPage() {
             <motion.div
               key="view-settlement"
               {...scrollFadeVariant}
-              className="space-y-4"
+              className="space-y-4 print:space-y-0 print:m-0 print:p-0"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 print:hidden">
                 <div>
                   <div className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                     <Stamp className="w-4 h-4" /> Section 4: Final Accord & Execution
@@ -2794,27 +2872,31 @@ export default function SettlrODRPage() {
 
               {/* e-Stamp Styled Deed Paper */}
               <div
+                id="printable-deed"
                 className={`border-2 rounded-3xl overflow-hidden shadow-2xl transition-all relative ${
                   isSettled
                     ? "border-emerald-500/60"
                     : "border-white/20 opacity-75 grayscale-[30%]"
-                } ${isDark ? "bg-[#181616]" : "bg-white"}`}
+                } ${
+                  isDark ? "bg-[#181616]" : "bg-white"
+                } print:block print:w-full print:p-8 print:bg-white print:text-black print:shadow-none print:border print:border-neutral-300 print:rounded-none print:opacity-100 print:grayscale-0`}
               >
                 {/* Header Band */}
                 <div
-                  className={`p-4 sm:p-5 border-b-2 text-center ${
+                  className={`stamp-header p-4 sm:p-5 border-b-2 text-center print:bg-emerald-50/60 print:border-neutral-300 print:text-black print:break-inside-avoid ${
                     isDark
                       ? "bg-[#0E1A14] border-emerald-500/40 text-[#E0DDDD]"
                       : "bg-emerald-50 border-emerald-300 text-[#1A2E22]"
                   }`}
+                  style={{ breakInside: "avoid" }}
                 >
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-0.5">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 print:text-emerald-800 mb-0.5 font-bold">
                     Government of Karnataka • Department of Stamps & Registration
                   </div>
-                  <h2 className="text-lg sm:text-xl font-black tracking-wide">
+                  <h2 className="text-lg sm:text-xl font-black tracking-wide print:text-black">
                     DEED OF MUTUAL SETTLEMENT & FINAL ACCORD
                   </h2>
-                  <div className="flex flex-wrap items-center justify-center gap-3 text-[10px] font-mono opacity-60 mt-1">
+                  <div className="flex flex-wrap items-center justify-center gap-3 text-[10px] font-mono opacity-60 print:opacity-100 print:text-neutral-700 mt-1">
                     <span>Cert: IN-KA892401BLR2026</span>
                     <span>•</span>
                     <span>Sec 89 CPC, 1908</span>
@@ -2824,68 +2906,82 @@ export default function SettlrODRPage() {
                 </div>
 
                 {/* Deed Content */}
-                <div className="p-5 sm:p-6 space-y-4 text-xs leading-relaxed">
+                <div className="p-5 sm:p-6 space-y-4 text-xs leading-relaxed print:p-0 print:pt-4 print:text-black print:space-y-4">
                   {/* Parties */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className={`p-3 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
-                      <div className="text-[10px] font-black uppercase text-emerald-400 mb-0.5">First Party (Tenant)</div>
-                      <div className="font-extrabold text-sm">{activeCase.tenant} (+91 98801 23456)</div>
-                      <div className="opacity-70 text-[11px]">{activeCase.address}</div>
+                  <div
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3 print:grid-cols-2 print:gap-4 print:break-inside-avoid"
+                    style={{ breakInside: "avoid" }}
+                  >
+                    <div className={`party-card p-3 rounded-xl border print:bg-neutral-50 print:border-neutral-300 print:text-black ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                      <div className="text-[10px] font-black uppercase text-emerald-400 print:text-emerald-800 mb-0.5">First Party (Tenant)</div>
+                      <div className="font-extrabold text-sm print:text-black">{activeCase.tenant} (+91 98801 23456)</div>
+                      <div className="opacity-70 print:opacity-100 print:text-neutral-700 text-[11px]">{activeCase.address}</div>
                     </div>
 
-                    <div className={`p-3 rounded-xl border ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
-                      <div className="text-[10px] font-black uppercase opacity-60 mb-0.5">Second Party (Landlord)</div>
-                      <div className="font-extrabold text-sm">{activeCase.landlord} (+91 94480 87654)</div>
-                      <div className="opacity-70 text-[11px]">Owner / Lessor of {activeCase.address.split(",")[0]}</div>
+                    <div className={`party-card p-3 rounded-xl border print:bg-neutral-50 print:border-neutral-300 print:text-black ${isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"}`}>
+                      <div className="text-[10px] font-black uppercase opacity-60 print:opacity-100 print:text-neutral-700 mb-0.5">Second Party (Landlord)</div>
+                      <div className="font-extrabold text-sm print:text-black">{activeCase.landlord} (+91 94480 87654)</div>
+                      <div className="opacity-70 print:opacity-100 print:text-neutral-700 text-[11px]">Owner / Lessor of {activeCase.address.split(",")[0]}</div>
                     </div>
                   </div>
 
                   {/* Financial Ledger */}
-                  <div className={`rounded-xl border overflow-hidden ${isDark ? "border-[#332F2F]" : "border-[#E0DDDD]"}`}>
-                    <div className={`grid grid-cols-3 p-2.5 text-[10px] font-black uppercase opacity-70 ${isDark ? "bg-[#1E1C1C]" : "bg-[#ECE9E9]"}`}>
+                  <div
+                    className={`rounded-xl border overflow-hidden print:border-neutral-300 print:bg-white print:text-black print:break-inside-avoid ${
+                      isDark ? "border-[#332F2F]" : "border-[#E0DDDD]"
+                    }`}
+                    style={{ breakInside: "avoid" }}
+                  >
+                    <div className={`grid grid-cols-3 p-2.5 text-[10px] font-black uppercase opacity-70 print:opacity-100 print:bg-neutral-100 print:text-neutral-800 ${isDark ? "bg-[#1E1C1C]" : "bg-[#ECE9E9]"}`}>
                       <span>Head of Account</span>
                       <span className="text-center">Claim vs Permitted</span>
                       <span className="text-right">Final Accord</span>
                     </div>
-                    <div className="divide-y divide-white/10 text-xs">
-                      <div className="grid grid-cols-3 p-2.5">
-                        <span>Total Security Deposit</span>
-                        <span className="text-center opacity-70">Escrow Paid</span>
-                        <span className="text-right font-bold">₹{totalDepositEscrow.toLocaleString("en-IN")}</span>
+                    <div className="divide-y divide-white/10 print:divide-neutral-200 text-xs print:text-black">
+                      <div className="grid grid-cols-3 p-2.5 print:bg-white">
+                        <span className="font-medium print:text-black">Total Security Deposit</span>
+                        <span className="text-center opacity-70 print:opacity-100 print:text-neutral-600">Escrow Paid</span>
+                        <span className="text-right font-bold print:text-black">₹{totalDepositEscrow.toLocaleString("en-IN")}</span>
                       </div>
-                      <div className="grid grid-cols-3 p-2.5">
-                        <span>Agreed Deductions</span>
-                        <span className="text-center text-rose-400">Reduced from ₹{initialLandlordTotal.toLocaleString("en-IN")}</span>
-                        <span className="text-right font-bold text-rose-400">(-) ₹{activeDeduction.toLocaleString("en-IN")}</span>
+                      <div className="grid grid-cols-3 p-2.5 print:bg-white">
+                        <span className="font-medium print:text-black">Agreed Deductions</span>
+                        <span className="text-center text-rose-400 print:text-rose-700 font-semibold">Reduced from ₹{initialLandlordTotal.toLocaleString("en-IN")}</span>
+                        <span className="text-right font-bold text-rose-400 print:text-rose-700">(-) ₹{activeDeduction.toLocaleString("en-IN")}</span>
                       </div>
-                      <div className={`grid grid-cols-3 p-2.5 font-extrabold ${isDark ? "bg-emerald-950/20 text-emerald-400" : "bg-emerald-50 text-emerald-800"}`}>
-                        <span className="text-sm font-black">Net Refund to {activeCase.tenant.split(" ")[0]}</span>
-                        <span className="text-center text-[10px] opacity-80">Instant Escrow Release</span>
-                        <span className="text-right text-lg font-black">₹{netRefund.toLocaleString("en-IN")}</span>
+                      <div className={`grid grid-cols-3 p-2.5 font-extrabold print:bg-neutral-100 print:text-black ${isDark ? "bg-emerald-950/20 text-emerald-400" : "bg-emerald-50 text-emerald-800"}`}>
+                        <span className="text-sm font-black print:text-black">Net Refund to {activeCase.tenant.split(" ")[0]}</span>
+                        <span className="text-center text-[10px] opacity-80 print:opacity-100 print:text-neutral-700">Instant Escrow Release</span>
+                        <span className="text-right text-lg font-black text-emerald-600 print:text-black">₹{netRefund.toLocaleString("en-IN")}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Supabase Cryptographic Audit Callout */}
-                  <div className={`p-3 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
-                    isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"
-                  }`}>
+                  <div
+                    className={`audit-card p-3 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 print:flex-row print:bg-neutral-50 print:border-neutral-300 print:text-black print:break-inside-avoid ${
+                      isDark ? "bg-[#141313] border-[#332F2F]" : "bg-[#F9F8F8] border-[#E0DDDD]"
+                    }`}
+                    style={{ breakInside: "avoid" }}
+                  >
                     <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <Shield className="w-4 h-4 text-emerald-400 print:text-emerald-700 shrink-0" />
                       <div>
-                        <span className="font-bold text-emerald-400">Supabase Cryptographic Tamper-Proof Audit Trail</span>
-                        <div className="text-[10px] opacity-70">
+                        <span className="font-bold text-emerald-400 print:text-black">Supabase Cryptographic Tamper-Proof Audit Trail</span>
+                        <div className="text-[10px] opacity-70 print:opacity-100 print:text-neutral-600">
                           Row-level security audit hash #sb-{activeCase.id.toLowerCase()}-sha256. Executed under Section 89 CPC as a binding decree.
                         </div>
                       </div>
                     </div>
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 print:bg-neutral-200 print:text-black border border-emerald-500/30 print:border-neutral-400 shrink-0 font-bold">
                       COMMITTED
                     </span>
                   </div>
 
                   {/* Digital Signature Pads */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 print:grid-cols-2 print:gap-4 print:break-inside-avoid"
+                    style={{ breakInside: "avoid" }}
+                  >
                     <div
                       onClick={() => {
                         if (!tenantSigned) {
@@ -2894,32 +2990,33 @@ export default function SettlrODRPage() {
                           confetti({ particleCount: 40, spread: 40 });
                         }
                       }}
-                      className={`p-3.5 rounded-xl border-2 border-dashed cursor-pointer transition ${
+                      className={`signature-card p-3.5 rounded-xl border-2 border-dashed cursor-pointer transition print:cursor-default print:bg-white print:border-neutral-400 print:text-black ${
                         tenantSigned
-                          ? "bg-emerald-500/10 border-emerald-500/60"
+                          ? "bg-emerald-500/10 border-emerald-500/60 print:border-solid"
                           : isDark
                           ? "bg-[#141313] border-[#3D3838] hover:border-emerald-400/50"
                           : "bg-[#F9F8F8] border-[#D6D1D1] hover:border-emerald-500"
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-black">{activeCase.tenant} (Tenant)</span>
+                        <span className="text-xs font-black print:text-black">{activeCase.tenant} (Tenant)</span>
                         {tenantSigned ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 print:text-black" />
                         ) : (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 print:hidden font-bold">
                             Click to Sign
                           </span>
                         )}
                       </div>
                       {tenantSigned ? (
-                        <div className="mt-1 font-mono text-[10px] text-emerald-400">
+                        <div className="mt-1 font-mono text-[10px] text-emerald-500 print:text-black font-semibold">
                           ✓ Digitally Signed: {tenantSignTime}
                         </div>
                       ) : (
-                        <p className="text-[10px] opacity-60 mt-1">
-                          Clicking signs declaration affirming full deposit settlement.
-                        </p>
+                        <div className="mt-1 text-[10px] text-neutral-600 font-mono">
+                          <span className="print:hidden opacity-60">Clicking signs declaration affirming full deposit settlement.</span>
+                          <span className="hidden print:inline-block pt-3 border-t border-dashed border-neutral-300 w-full">Signature: ______________________</span>
+                        </div>
                       )}
                     </div>
 
@@ -2931,32 +3028,33 @@ export default function SettlrODRPage() {
                           confetti({ particleCount: 40, spread: 40 });
                         }
                       }}
-                      className={`p-3.5 rounded-xl border-2 border-dashed cursor-pointer transition ${
+                      className={`signature-card p-3.5 rounded-xl border-2 border-dashed cursor-pointer transition print:cursor-default print:bg-white print:border-neutral-400 print:text-black ${
                         landlordSigned
-                          ? "bg-emerald-500/10 border-emerald-500/60"
+                          ? "bg-emerald-500/10 border-emerald-500/60 print:border-solid"
                           : isDark
                           ? "bg-[#141313] border-[#3D3838] hover:border-emerald-400/50"
                           : "bg-[#F9F8F8] border-[#D6D1D1] hover:border-emerald-500"
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-black">{activeCase.landlord} (Landlord)</span>
+                        <span className="text-xs font-black print:text-black">{activeCase.landlord} (Landlord)</span>
                         {landlordSigned ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 print:text-black" />
                         ) : (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 print:hidden font-bold">
                             Click to Sign
                           </span>
                         )}
                       </div>
                       {landlordSigned ? (
-                        <div className="mt-1 font-mono text-[10px] text-emerald-400">
+                        <div className="mt-1 font-mono text-[10px] text-emerald-500 print:text-black font-semibold">
                           ✓ Digitally Signed: {landlordSignTime}
                         </div>
                       ) : (
-                        <p className="text-[10px] opacity-60 mt-1">
-                          Clicking authorizes escrow release of ₹{netRefund.toLocaleString("en-IN")} back to tenant.
-                        </p>
+                        <div className="mt-1 text-[10px] text-neutral-600 font-mono">
+                          <span className="print:hidden opacity-60">Clicking authorizes escrow release of ₹{netRefund.toLocaleString("en-IN")} back to tenant.</span>
+                          <span className="hidden print:inline-block pt-3 border-t border-dashed border-neutral-300 w-full">Signature: ______________________</span>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -2964,7 +3062,7 @@ export default function SettlrODRPage() {
 
                 {/* Deed Action Footer */}
                 <div
-                  className={`p-4 border-t flex flex-wrap items-center justify-between gap-2 ${
+                  className={`p-4 border-t flex flex-wrap items-center justify-between gap-2 print:hidden ${
                     isDark ? "bg-[#141313] border-white/10" : "bg-[#F9F8F8] border-[#E0DDDD]"
                   }`}
                 >
@@ -2977,26 +3075,40 @@ export default function SettlrODRPage() {
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => window.print()}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 ${
+                      type="button"
+                      onClick={() => {
+                        try {
+                          window.print();
+                        } catch (e) {
+                          console.error("Print error:", e);
+                        }
+                      }}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 cursor-pointer ${
                         isDark
                           ? "bg-[#222020] border-[#3A3535] text-[#E0DDDD] hover:bg-[#2D2A2A]"
                           : "bg-white border-[#D6D1D1] text-[#1E1B1B] hover:bg-[#ECE9E9] shadow-sm"
                       }`}
                     >
-                      <Printer className="w-3.5 h-3.5" />
-                      Print Deed
+                      <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Print Deed</span>
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => {
-                        confetti({ particleCount: 160, spread: 100, origin: { y: 0.5 } });
-                        window.print();
+                        try {
+                          confetti({ particleCount: 140, spread: 90, origin: { y: 0.6 } });
+                        } catch (_) {}
+                        try {
+                          window.print();
+                        } catch (e) {
+                          console.error("Print PDF error:", e);
+                        }
                       }}
-                      className="px-4 py-1.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition flex items-center gap-1.5 shadow-md"
+                      className="px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 transition flex items-center gap-2 shadow-lg shadow-emerald-500/25 cursor-pointer"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      Download Executed PDF
+                      <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Download Deed / Print PDF</span>
                     </button>
                   </div>
                 </div>
@@ -3634,7 +3746,7 @@ export default function SettlrODRPage() {
           FOOTER
       ═══════════════════════════════════════════════════════════ */}
       <footer
-        className={`border-t py-6 mt-12 text-center text-xs transition-colors ${
+        className={`border-t py-6 mt-12 text-center text-xs transition-colors print:hidden ${
           isDark ? "border-[#2D2929] text-[#7A7575]" : "border-[#E0DDDD] text-[#7A7575]"
         }`}
       >
